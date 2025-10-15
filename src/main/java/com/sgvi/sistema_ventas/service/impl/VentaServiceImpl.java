@@ -1,14 +1,15 @@
 package com.sgvi.sistema_ventas.service.impl;
 
-import com.sgvi.sistema_ventas.model.dto.common.PageResponseDTO;
-import com.sgvi.sistema_ventas.model.dto.common.ResponseDTO;
-import com.sgvi.sistema_ventas.model.dto.venta.*;
-import com.sgvi.sistema_ventas.model.entity.*;
+import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
+import com.sgvi.sistema_ventas.model.entity.Producto;
+import com.sgvi.sistema_ventas.model.entity.Venta;
 import com.sgvi.sistema_ventas.model.enums.EstadoVenta;
-import com.sgvi.sistema_ventas.model.enums.TipoComprobante;
-import com.sgvi.sistema_ventas.model.enums.TipoMovimiento;
-import com.sgvi.sistema_ventas.repository.*;
+import com.sgvi.sistema_ventas.repository.DetalleVentaRepository;
+import com.sgvi.sistema_ventas.repository.VentaRepository;
+import com.sgvi.sistema_ventas.service.interfaces.IInventarioService;
+import com.sgvi.sistema_ventas.service.interfaces.IProductoService;
 import com.sgvi.sistema_ventas.service.interfaces.IVentaService;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,14 +18,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * Service implementation para la gestión de ventas.
- * Implementa la lógica de negocio según RF-007, RF-008, RF-009
+ * Implementación del servicio de gestión de ventas.
+ * Incluye transacciones, cálculos automáticos y actualización de inventario.
  *
  * @author Wilian Lopez
  * @version 1.0
@@ -33,377 +34,221 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class VentaServiceImpl implements IVentaService {
 
     private final VentaRepository ventaRepository;
     private final DetalleVentaRepository detalleVentaRepository;
-    private final ComprobanteRepository comprobanteRepository;
-    private final InventarioRepository inventarioRepository;
-    private final ProductoRepository productoRepository;
-    private final ClienteRepository clienteRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final MetodoPagoRepository metodoPagoRepository;
+    private final IProductoService productoService;
+    private final IInventarioService inventarioService;
 
-    private static final BigDecimal IGV_PORCENTAJE = BigDecimal.valueOf(0.18);
-    private static final int PLAZO_ANULACION_HORAS = 24;
+    private static final BigDecimal IGV_RATE = BigDecimal.valueOf(0.18); // 18%
 
     @Override
-    @Transactional
-    public ResponseDTO<VentaDTO> registrarVenta(VentaCreateDTO ventaCreateDTO, Long idUsuario) {
-        try {
-            log.info("Registrando nueva venta para usuario: {}", idUsuario);
+    public Venta registrarVenta(Venta venta, List<DetalleVenta> detalles) {
+        log.info("Registrando nueva venta para cliente ID: {}", venta.getCliente().getIdCliente());
 
-            // RF-007: Validaciones previas
-            ResponseDTO<Boolean> validacionStock = validarStockSuficiente(ventaCreateDTO.getDetalles());
-            if (!validacionStock.isSuccess()) {
-                return ResponseDTO.error(validacionStock.getMessage());
+        // Validaciones
+        validarVenta(venta, detalles);
+
+        // Verificar stock disponible para todos los productos
+        for (DetalleVenta detalle : detalles) {
+            if (!productoService.verificarStock(detalle.getProducto().getIdProducto(), detalle.getCantidad())) {
+                Producto producto = productoService.obtenerPorId(detalle.getProducto().getIdProducto());
+                throw new IllegalArgumentException(
+                        "Stock insuficiente para producto: " + producto.getNombre() +
+                                ". Stock disponible: " + producto.getStock()
+                );
             }
-
-            // Obtener entidades relacionadas
-            Cliente cliente = clienteRepository.findById(ventaCreateDTO.getIdCliente())
-                    .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
-            Usuario usuario = usuarioRepository.findById(idUsuario)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            MetodoPago metodoPago = metodoPagoRepository.findById(ventaCreateDTO.getIdMetodoPago())
-                    .orElseThrow(() -> new RuntimeException("Método de pago no encontrado"));
-
-            // RF-007: Calcular totales
-            ResponseDTO<BigDecimal> subtotalResponse = calcularSubtotal(ventaCreateDTO.getDetalles());
-            BigDecimal subtotal = subtotalResponse.getData();
-            BigDecimal igv = calcularIGV(subtotal).getData();
-            BigDecimal total = calcularTotal(subtotal, igv).getData();
-
-            // Crear venta
-            Venta venta = Venta.builder()
-                    .codigoVenta(generarCodigoVenta())
-                    .cliente(cliente)
-                    .usuario(usuario)
-                    .subtotal(subtotal)
-                    .igv(igv)
-                    .total(total)
-                    .metodoPago(metodoPago)
-                    .estado(EstadoVenta.PAGADO)
-                    .tipoComprobante(TipoComprobante.fromValor(ventaCreateDTO.getTipoComprobante()))
-                    .observaciones(ventaCreateDTO.getObservaciones())
-                    .build();
-
-            // RF-007: Agregar detalles de venta
-            for (DetalleVentaDTO detalleDTO : ventaCreateDTO.getDetalles()) {
-                Producto producto = productoRepository.findById(detalleDTO.getIdProducto())
-                        .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + detalleDTO.getIdProducto()));
-
-                DetalleVenta detalle = DetalleVenta.builder()
-                        .venta(venta)
-                        .producto(producto)
-                        .cantidad(detalleDTO.getCantidad())
-                        .precioUnitario(detalleDTO.getPrecioUnitario())
-                        .descuento(detalleDTO.getDescuento())
-                        .build();
-                detalle.calcularSubtotal();
-
-                venta.agregarDetalle(detalle);
-
-                // RF-007: Actualizar stock y registrar movimiento
-                actualizarStockProducto(producto, detalle.getCantidad(), TipoMovimiento.SALIDA, venta, usuario, "Venta registrada");
-            }
-
-            // Guardar venta
-            Venta ventaGuardada = ventaRepository.save(venta);
-
-            // RF-007: Generar comprobante
-            generarComprobanteAutomatico(ventaGuardada);
-
-            log.info("Venta registrada exitosamente: {}", ventaGuardada.getCodigoVenta());
-            return ResponseDTO.success(convertirAVentaDTO(ventaGuardada), "Venta registrada exitosamente");
-
-        } catch (Exception e) {
-            log.error("Error al registrar venta: {}", e.getMessage(), e);
-            return ResponseDTO.error("Error al registrar venta: " + e.getMessage());
         }
+
+        // Generar código de venta
+        venta.setCodigoVenta(generarCodigoVenta());
+
+        // Calcular totales
+        BigDecimal[] totales = calcularTotales(detalles);
+        venta.setSubtotal(totales[0]);
+        venta.setIgv(totales[1]);
+        venta.setTotal(totales[2]);
+
+        // Establecer fecha y estado
+        venta.setFechaVenta(LocalDateTime.now());
+        venta.setEstado(EstadoVenta.PAGADO);
+        venta.setFechaCreacion(LocalDateTime.now());
+        venta.setFechaActualizacion(LocalDateTime.now());
+
+        // Guardar venta
+        Venta ventaGuardada = ventaRepository.save(venta);
+        log.info("Venta guardada con código: {}", ventaGuardada.getCodigoVenta());
+
+        // Guardar detalles y actualizar stock
+        for (DetalleVenta detalle : detalles) {
+            detalle.setVenta(ventaGuardada);
+            detalle.calcularSubtotal();
+            detalleVentaRepository.save(detalle);
+
+            // Actualizar stock del producto
+            productoService.actualizarStock(
+                    detalle.getProducto().getIdProducto(),
+                    -detalle.getCantidad() // Negativo porque es salida
+            );
+
+            // Registrar movimiento en inventario
+            inventarioService.registrarSalida(
+                    detalle.getProducto().getIdProducto(),
+                    detalle.getCantidad(),
+                    venta.getUsuario().getIdUsuario(),
+                    ventaGuardada.getIdVenta()
+            );
+        }
+
+        log.info("Venta registrada exitosamente: {}", ventaGuardada.getCodigoVenta());
+        return ventaGuardada;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseDTO<PageResponseDTO<VentaResumenDTO>> obtenerVentas(VentaBusquedaDTO filtros, Pageable pageable) {
-        try {
-            log.info("Buscando ventas con filtros");
+    public Venta obtenerPorId(Long id) {
+        return ventaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada con ID: " + id));
+    }
 
-            Page<Venta> ventasPage = ventaRepository.buscarVentasConFiltros(
-                    filtros.getCodigoVenta(),
-                    filtros.getIdCliente(),
-                    filtros.getIdUsuario(),
-                    filtros.getEstado(),
-                    filtros.getIdMetodoPago(),
-                    filtros.getFechaDesde(),
-                    filtros.getFechaHasta(),
-                    pageable
+    @Override
+    @Transactional(readOnly = true)
+    public Venta obtenerPorCodigo(String codigoVenta) {
+        return ventaRepository.findByCodigoVenta(codigoVenta)
+                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada con código: " + codigoVenta));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Venta> listarTodas(Pageable pageable) {
+        return ventaRepository.findAll(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Venta> buscarConFiltros(String codigoVenta, Long idCliente, Long idUsuario,
+                                        EstadoVenta estado, Long idMetodoPago,
+                                        LocalDateTime fechaInicio, LocalDateTime fechaFin,
+                                        Pageable pageable) {
+        return ventaRepository.buscarVentasConFiltros(
+                codigoVenta, idCliente, idUsuario, estado, idMetodoPago,
+                fechaInicio, fechaFin, pageable
+        );
+    }
+
+    @Override
+    public void anularVenta(Long idVenta, String motivo) {
+        log.info("Anulando venta ID: {}", idVenta);
+
+        if (!puedeAnularse(idVenta)) {
+            throw new IllegalArgumentException("La venta no puede ser anulada. Debe estar en estado PAGADO y tener menos de 24 horas");
+        }
+
+        Venta venta = obtenerPorId(idVenta);
+
+        // Cambiar estado a anulado
+        venta.setEstado(EstadoVenta.ANULADO);
+        venta.setObservaciones("ANULADA: " + motivo);
+        venta.setFechaActualizacion(LocalDateTime.now());
+
+        ventaRepository.save(venta);
+
+        // Revertir stock de todos los productos
+        List<DetalleVenta> detalles = detalleVentaRepository.findByVentaId(idVenta);
+        for (DetalleVenta detalle : detalles) {
+            productoService.actualizarStock(
+                    detalle.getProducto().getIdProducto(),
+                    detalle.getCantidad() // Positivo porque se devuelve al stock
             );
 
-            List<VentaResumenDTO> ventasDTO = ventasPage.getContent().stream()
-                    .map(this::convertirAVentaResumenDTO)
-                    .collect(Collectors.toList());
-
-            PageResponseDTO<VentaResumenDTO> response = PageResponseDTO.of(
-                    ventasDTO,
-                    ventasPage.getNumber(),
-                    ventasPage.getSize(),
-                    ventasPage.getTotalElements()
+            // Registrar devolución en inventario
+            inventarioService.registrarDevolucion(
+                    detalle.getProducto().getIdProducto(),
+                    detalle.getCantidad(),
+                    venta.getUsuario().getIdUsuario(),
+                    "Anulación de venta: " + venta.getCodigoVenta()
             );
-
-            return ResponseDTO.success(response, "Ventas obtenidas exitosamente");
-
-        } catch (Exception e) {
-            log.error("Error al obtener ventas: {}", e.getMessage(), e);
-            return ResponseDTO.error("Error al obtener ventas: " + e.getMessage());
         }
+
+        log.info("Venta anulada exitosamente: {}", venta.getCodigoVenta());
     }
 
     @Override
-    @Transactional
-    public ResponseDTO<Void> anularVenta(Long idVenta, String motivo, Long idUsuario) {
-        try {
-            log.info("Anulando venta: {} por usuario: {}", idVenta, idUsuario);
+    @Transactional(readOnly = true)
+    public boolean puedeAnularse(Long idVenta) {
+        LocalDateTime fechaLimite = LocalDateTime.now().minusHours(24);
+        return ventaRepository.findVentaAnulable(idVenta, fechaLimite).isPresent();
+    }
 
-            // RF-009: Validar que la venta puede ser anulada
-            LocalDateTime fechaLimite = LocalDateTime.now().minusHours(PLAZO_ANULACION_HORAS);
-            Venta venta = ventaRepository.findVentaAnulable(idVenta, fechaLimite)
-                    .orElseThrow(() -> new RuntimeException("La venta no puede ser anulada. Verifique el estado o el plazo de 24 horas."));
+    @Override
+    public BigDecimal[] calcularTotales(List<DetalleVenta> detalles) {
+        BigDecimal subtotal = BigDecimal.ZERO;
 
-            // RF-009: Revertir stock
-            Usuario usuario = usuarioRepository.findById(idUsuario)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        for (DetalleVenta detalle : detalles) {
+            detalle.calcularSubtotal();
+            subtotal = subtotal.add(detalle.getSubtotal());
+        }
 
-            for (DetalleVenta detalle : venta.getDetallesVenta()) {
-                actualizarStockProducto(
-                        detalle.getProducto(),
-                        detalle.getCantidad(),
-                        TipoMovimiento.ENTRADA,
-                        venta,
-                        usuario,
-                        "Anulación de venta: " + motivo
-                );
+        BigDecimal igv = subtotal.multiply(IGV_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.add(igv);
+
+        return new BigDecimal[]{subtotal, igv, total};
+    }
+
+    @Override
+    public String generarCodigoVenta() {
+        String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        long count = ventaRepository.count() + 1;
+        return String.format("V-%s-%05d", fecha, count);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Venta> obtenerVentasPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        return ventaRepository.findVentasPorPeriodo(fechaInicio, fechaFin);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal obtenerTotalVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        return ventaRepository.getTotalVentasPorPeriodo(fechaInicio, fechaFin);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long contarVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        return ventaRepository.countVentasPorPeriodo(fechaInicio, fechaFin);
+    }
+
+    // ========== MÉTODOS PRIVADOS DE VALIDACIÓN ==========
+
+    private void validarVenta(Venta venta, List<DetalleVenta> detalles) {
+        if (venta.getCliente() == null || venta.getCliente().getIdCliente() == null) {
+            throw new ValidationException("El cliente es obligatorio");
+        }
+
+        if (venta.getUsuario() == null || venta.getUsuario().getIdUsuario() == null) {
+            throw new ValidationException("El vendedor es obligatorio");
+        }
+
+        if (venta.getMetodoPago() == null || venta.getMetodoPago().getIdMetodoPago() == null) {
+            throw new ValidationException("El método de pago es obligatorio");
+        }
+
+        if (detalles == null || detalles.isEmpty()) {
+            throw new ValidationException("La venta debe tener al menos un producto");
+        }
+
+        for (DetalleVenta detalle : detalles) {
+            if (detalle.getCantidad() == null || detalle.getCantidad() <= 0) {
+                throw new ValidationException("La cantidad debe ser mayor a cero");
             }
 
-            // Actualizar estado de la venta
-            venta.setEstado(EstadoVenta.ANULADO);
-            venta.setObservaciones("ANULADA - " + motivo + " - " + LocalDateTime.now());
-            ventaRepository.save(venta);
-
-            log.info("Venta anulada exitosamente: {}", idVenta);
-            return ResponseDTO.success(null, "Venta anulada exitosamente");
-
-        } catch (Exception e) {
-            log.error("Error al anular venta: {}", e.getMessage(), e);
-            return ResponseDTO.error("Error al anular venta: " + e.getMessage());
-        }
-    }
-
-    // Métodos auxiliares privados
-    private String generarCodigoVenta() {
-        String prefijo = "V-" + LocalDateTime.now().getYear() + "-";
-        long numeroVentas = ventaRepository.count();
-        return prefijo + String.format("%05d", numeroVentas + 1);
-    }
-
-    private void actualizarStockProducto(Producto producto, Integer cantidad, TipoMovimiento tipo, Venta venta, Usuario usuario, String observacion) {
-        int stockAnterior = producto.getStock();
-        int stockNuevo = tipo.calcularNuevoStock(stockAnterior, cantidad);
-
-        producto.setStock(stockNuevo);
-        productoRepository.save(producto);
-
-        // Registrar movimiento en inventario
-        Inventario movimiento = Inventario.builder()
-                .producto(producto)
-                .tipoMovimiento(tipo)
-                .cantidad(cantidad)
-                .stockAnterior(stockAnterior)
-                .stockNuevo(stockNuevo)
-                .usuario(usuario)
-                .venta(venta)
-                .observacion(observacion)
-                .build();
-
-        inventarioRepository.save(movimiento);
-    }
-
-    private void generarComprobanteAutomatico(Venta venta) {
-        String serie = venta.getTipoComprobante().getSerie();
-        String ultimoNumero = comprobanteRepository.findLastNumeroBySerie(serie).orElse("00000000");
-        String nuevoNumero = String.format("%08d", Integer.parseInt(ultimoNumero) + 1);
-
-        Comprobante comprobante = Comprobante.builder()
-                .venta(venta)
-                .tipo(venta.getTipoComprobante())
-                .serie(serie)
-                .numero(nuevoNumero)
-                .total(venta.getTotal())
-                .igv(venta.getIgv())
-                .build();
-
-        comprobanteRepository.save(comprobante);
-    }
-
-    // Implementación de otros métodos del interface...
-    @Override
-    public ResponseDTO<BigDecimal> calcularSubtotal(List<DetalleVentaDTO> detalles) {
-        try {
-            BigDecimal subtotal = detalles.stream()
-                    .map(DetalleVentaDTO::getSubtotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            return ResponseDTO.success(subtotal);
-        } catch (Exception e) {
-            return ResponseDTO.error("Error al calcular subtotal: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public ResponseDTO<BigDecimal> calcularIGV(BigDecimal subtotal) {
-        try {
-            BigDecimal igv = subtotal.multiply(IGV_PORCENTAJE);
-            return ResponseDTO.success(igv);
-        } catch (Exception e) {
-            return ResponseDTO.error("Error al calcular IGV: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public ResponseDTO<BigDecimal> calcularTotal(BigDecimal subtotal, BigDecimal igv) {
-        try {
-            BigDecimal total = subtotal.add(igv);
-            return ResponseDTO.success(total);
-        } catch (Exception e) {
-            return ResponseDTO.error("Error al calcular total: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public ResponseDTO<Boolean> validarStockSuficiente(List<DetalleVentaDTO> detalles) {
-        try {
-            for (DetalleVentaDTO detalle : detalles) {
-                Producto producto = productoRepository.findById(detalle.getIdProducto())
-                        .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + detalle.getIdProducto()));
-
-                if (producto.getStock() < detalle.getCantidad()) {
-                    return ResponseDTO.error("Stock insuficiente para el producto: " + producto.getNombre());
-                }
+            if (detalle.getPrecioUnitario() == null || detalle.getPrecioUnitario().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new ValidationException("El precio unitario debe ser mayor a cero");
             }
-            return ResponseDTO.success(true);
-        } catch (Exception e) {
-            return ResponseDTO.error("Error al validar stock: " + e.getMessage());
         }
     }
-
-    @Override
-    public ResponseDTO<Boolean> validarVentaAnulable(Long idVenta) {
-        try {
-            LocalDateTime fechaLimite = LocalDateTime.now().minusHours(PLAZO_ANULACION_HORAS);
-            boolean anulable = ventaRepository.findVentaAnulable(idVenta, fechaLimite).isPresent();
-            return ResponseDTO.success(anulable);
-        } catch (Exception e) {
-            return ResponseDTO.error("Error al validar venta anulable: " + e.getMessage());
-        }
-    }
-
-    // Métodos de conversión DTO
-    private VentaDTO convertirAVentaDTO(Venta venta) {
-        List<DetalleVentaDTO> detallesDTO = venta.getDetallesVenta().stream()
-                .map(this::convertirADetalleVentaDTO)
-                .collect(Collectors.toList());
-
-        ComprobanteDTO comprobanteDTO = null;
-        if (venta.getComprobante() != null) {
-            comprobanteDTO = convertirAComprobanteDTO(venta.getComprobante());
-        }
-
-        return VentaDTO.builder()
-                .idVenta(venta.getIdVenta())
-                .codigoVenta(venta.getCodigoVenta())
-                .idCliente(venta.getCliente().getIdCliente())
-                .nombreCliente(venta.getCliente().getNombre() + " " + venta.getCliente().getApellido())
-                .idUsuario(venta.getUsuario().getIdUsuario())
-                .nombreUsuario(venta.getUsuario().getNombre() + " " + venta.getUsuario().getApellido())
-                .fechaVenta(venta.getFechaVenta())
-                .subtotal(venta.getSubtotal())
-                .igv(venta.getIgv())
-                .total(venta.getTotal())
-                .idMetodoPago(venta.getMetodoPago().getIdMetodoPago())
-                .metodoPago(venta.getMetodoPago().getNombre())
-                .estado(venta.getEstado())
-                .tipoComprobante(venta.getTipoComprobante())
-                .observaciones(venta.getObservaciones())
-                .fechaCreacion(venta.getFechaCreacion())
-                .detalles(detallesDTO)
-                .comprobante(comprobanteDTO)
-                .build();
-    }
-
-    private DetalleVentaDTO convertirADetalleVentaDTO(DetalleVenta detalle) {
-        return DetalleVentaDTO.builder()
-                .idDetalle(detalle.getIdDetalle())
-                .idProducto(detalle.getProducto().getIdProducto())
-                .codigoProducto(detalle.getProducto().getCodigo())
-                .nombreProducto(detalle.getProducto().getNombre())
-                .marca(detalle.getProducto().getMarca())
-                .talla(detalle.getProducto().getTalla())
-                .color(detalle.getProducto().getColor())
-                .cantidad(detalle.getCantidad())
-                .precioUnitario(detalle.getPrecioUnitario())
-                .descuento(detalle.getDescuento())
-                .subtotal(detalle.getSubtotal())
-                .build();
-    }
-
-    private ComprobanteDTO convertirAComprobanteDTO(Comprobante comprobante) {
-        return ComprobanteDTO.builder()
-                .idComprobante(comprobante.getIdComprobante())
-                .tipo(comprobante.getTipo().getValor())
-                .serie(comprobante.getSerie())
-                .numero(comprobante.getNumero())
-                .numeroCompleto(comprobante.getNumeroCompleto())
-                .fechaEmision(comprobante.getFechaEmision())
-                .rucEmisor(comprobante.getRucEmisor())
-                .razonSocialEmisor(comprobante.getRazonSocialEmisor())
-                .direccionEmisor(comprobante.getDireccionEmisor())
-                .igv(comprobante.getIgv())
-                .total(comprobante.getTotal())
-                .estado(comprobante.getEstado())
-                .build();
-    }
-
-    private VentaResumenDTO convertirAVentaResumenDTO(Venta venta) {
-        return VentaResumenDTO.builder()
-                .idVenta(venta.getIdVenta())
-                .codigoVenta(venta.getCodigoVenta())
-                .nombreCliente(venta.getCliente().getNombre() + " " + venta.getCliente().getApellido())
-                .nombreUsuario(venta.getUsuario().getNombre() + " " + venta.getUsuario().getApellido())
-                .fechaVenta(venta.getFechaVenta())
-                .total(venta.getTotal())
-                .estado(venta.getEstado())
-                .metodoPago(venta.getMetodoPago().getNombre())
-                .comprobante(venta.getComprobante() != null ? venta.getComprobante().getNumeroCompleto() : "PENDIENTE")
-                .cantidadProductos(venta.getDetallesVenta().size())
-                .build();
-    }
-
-    // Implementación de otros métodos del interface (simplificados por espacio)
-    @Override
-    public ResponseDTO<VentaDTO> obtenerVentaPorId(Long idVenta) {
-        // Implementación
-        return null;
-    }
-
-    @Override
-    public ResponseDTO<VentaDTO> obtenerVentaPorCodigo(String codigoVenta) {
-        // Implementación
-        return null;
-    }
-
-    @Override
-    public ResponseDTO<List<VentaResumenDTO>> obtenerVentasPorCliente(Long idCliente) {
-        // Implementación
-        return null;
-    }
-
-    // ... otros métodos
 }
