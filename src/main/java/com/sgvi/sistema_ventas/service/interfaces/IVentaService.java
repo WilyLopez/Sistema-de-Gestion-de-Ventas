@@ -1,18 +1,17 @@
 package com.sgvi.sistema_ventas.service.interfaces;
 
-import com.sgvi.sistema_ventas.model.dto.common.PageResponseDTO;
-import com.sgvi.sistema_ventas.model.dto.common.ResponseDTO;
-import com.sgvi.sistema_ventas.model.dto.venta.*;
+import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
+import com.sgvi.sistema_ventas.model.entity.Venta;
 import com.sgvi.sistema_ventas.model.enums.EstadoVenta;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Service interface para la gestión de ventas.
- * Define las operaciones relacionadas con ventas según RF-007, RF-008, RF-009
+ * Interfaz de servicio para la gestión de ventas.
+ * Define los contratos según RF-007, RF-008, RF-009
  *
  * @author Wilian Lopez
  * @version 1.0
@@ -20,38 +19,100 @@ import java.util.List;
  */
 public interface IVentaService {
 
-    // RF-007: Registro de venta
-    ResponseDTO<VentaDTO> registrarVenta(VentaCreateDTO ventaCreateDTO, Long idUsuario);
+    /**
+     * RF-007: Registrar una nueva venta
+     * @param venta Venta a registrar
+     * @param detalles Lista de detalles de la venta
+     * @return Venta creada y procesada
+     */
+    Venta registrarVenta(Venta venta, List<DetalleVenta> detalles);
 
-    // RF-008: Consulta de ventas
-    ResponseDTO<PageResponseDTO<VentaResumenDTO>> obtenerVentas(VentaBusquedaDTO filtros, Pageable pageable);
-    ResponseDTO<VentaDTO> obtenerVentaPorId(Long idVenta);
-    ResponseDTO<VentaDTO> obtenerVentaPorCodigo(String codigoVenta);
+    /**
+     * RF-008: Obtener venta por ID
+     * @param id ID de la venta
+     * @return Venta encontrada
+     */
+    Venta obtenerPorId(Long id);
 
-    // RF-009: Anulación de venta
-    ResponseDTO<Void> anularVenta(Long idVenta, String motivo, Long idUsuario);
+    /**
+     * RF-008: Obtener venta por código
+     * @param codigoVenta Código de la venta
+     * @return Venta encontrada
+     */
+    Venta obtenerPorCodigo(String codigoVenta);
 
-    // RF-008: Búsquedas específicas
-    ResponseDTO<List<VentaResumenDTO>> obtenerVentasPorCliente(Long idCliente);
-    ResponseDTO<List<VentaResumenDTO>> obtenerVentasPorUsuario(Long idUsuario);
-    ResponseDTO<List<VentaResumenDTO>> obtenerVentasPorEstado(EstadoVenta estado);
-    ResponseDTO<List<VentaResumenDTO>> obtenerVentasPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin);
+    /**
+     * RF-008: Listar todas las ventas
+     * @param pageable Parámetros de paginación
+     * @return Página de ventas
+     */
+    Page<Venta> listarTodas(Pageable pageable);
 
-    // RF-007: Cálculos de venta
-    ResponseDTO<BigDecimal> calcularSubtotal(List<DetalleVentaDTO> detalles);
-    ResponseDTO<BigDecimal> calcularIGV(BigDecimal subtotal);
-    ResponseDTO<BigDecimal> calcularTotal(BigDecimal subtotal, BigDecimal igv);
+    /**
+     * RF-008: Buscar ventas con filtros múltiples
+     * @param codigoVenta Código de venta (opcional)
+     * @param idCliente ID del cliente (opcional)
+     * @param idUsuario ID del usuario/vendedor (opcional)
+     * @param estado Estado de la venta (opcional)
+     * @param idMetodoPago ID del método de pago (opcional)
+     * @param fechaInicio Fecha inicial (opcional)
+     * @param fechaFin Fecha final (opcional)
+     * @param pageable Parámetros de paginación
+     * @return Página de ventas filtradas
+     */
+    Page<Venta> buscarConFiltros(String codigoVenta, Long idCliente, Long idUsuario,
+                                 EstadoVenta estado, Long idMetodoPago,
+                                 LocalDateTime fechaInicio, LocalDateTime fechaFin,
+                                 Pageable pageable);
 
-    // RF-008: Generación de comprobante
-    ResponseDTO<ComprobanteDTO> generarComprobante(Long idVenta);
+    /**
+     * RF-009: Anular una venta
+     * @param idVenta ID de la venta a anular
+     * @param motivo Motivo de la anulación
+     */
+    void anularVenta(Long idVenta, String motivo);
 
-    // RF-014: Métricas y estadísticas
-    ResponseDTO<BigDecimal> obtenerTotalVentasPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin);
-    ResponseDTO<Long> obtenerCantidadVentasPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin);
-    ResponseDTO<List<Object[]>> obtenerVentasPorCategoria(LocalDateTime fechaInicio, LocalDateTime fechaFin);
-    ResponseDTO<List<Object[]>> obtenerTopProductosVendidos(LocalDateTime fechaInicio, LocalDateTime fechaFin, int limite);
+    /**
+     * RF-009: Verificar si una venta puede ser anulada
+     * @param idVenta ID de la venta
+     * @return true si puede ser anulada (< 24 horas y estado PAGADO)
+     */
+    boolean puedeAnularse(Long idVenta);
 
-    // Validaciones
-    ResponseDTO<Boolean> validarStockSuficiente(List<DetalleVentaDTO> detalles);
-    ResponseDTO<Boolean> validarVentaAnulable(Long idVenta);
+    /**
+     * RF-007: Calcular totales de la venta (subtotal, IGV, total)
+     * @param detalles Lista de detalles de la venta
+     * @return Array con [subtotal, igv, total]
+     */
+    BigDecimal[] calcularTotales(List<DetalleVenta> detalles);
+
+    /**
+     * RF-007: Generar código único para la venta
+     * @return Código generado (ej: V-2024-00001)
+     */
+    String generarCodigoVenta();
+
+    /**
+     * RF-014: Obtener ventas por período
+     * @param fechaInicio Fecha inicial
+     * @param fechaFin Fecha final
+     * @return Lista de ventas en el período
+     */
+    List<Venta> obtenerVentasPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin);
+
+    /**
+     * RF-014: Obtener total de ventas por período
+     * @param fechaInicio Fecha inicial
+     * @param fechaFin Fecha final
+     * @return Monto total vendido
+     */
+    BigDecimal obtenerTotalVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin);
+
+    /**
+     * RF-014: Contar ventas por período
+     * @param fechaInicio Fecha inicial
+     * @param fechaFin Fecha final
+     * @return Cantidad de ventas
+     */
+    Long contarVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin);
 }
