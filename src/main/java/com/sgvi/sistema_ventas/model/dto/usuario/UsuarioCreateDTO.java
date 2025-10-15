@@ -54,7 +54,7 @@ public class UsuarioCreateDTO {
     /** ID del rol asignado. */
     @NotNull(message = "El rol es obligatorio.")
     @Positive(message = "El ID del rol debe ser un número positivo.")
-    private Integer idRol;
+    private Long idRol;
 
     /** Estado inicial (por defecto, activo). */
     private Boolean estado = true;

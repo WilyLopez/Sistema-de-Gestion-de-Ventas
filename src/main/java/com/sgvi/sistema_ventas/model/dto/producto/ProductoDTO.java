@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 public class ProductoDTO {
 
     /** Identificador único del producto. */
-    private Integer idProducto;
+    private Long idProducto;
 
     /** Código de producto (SKU). */
     private String codigo;
@@ -64,13 +64,13 @@ public class ProductoDTO {
     private Boolean estado;
 
     /** ID de la categoría. */
-    private Integer idCategoria;
+    private Long idCategoria;
 
     /** Nombre de la categoría. */
     private String nombreCategoria;
 
     /** ID del proveedor. */
-    private Integer idProveedor;
+    private Long idProveedor;
 
     /** Razón social del proveedor. */
     private String razonSocialProveedor;

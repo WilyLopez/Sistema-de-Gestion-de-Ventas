@@ -23,11 +23,11 @@ public class ProductoBusquedaDTO {
 
     /** Filtro por ID de categoría. */
     @Min(value = 1, message = "ID de categoría inválido.")
-    private Integer idCategoria;
+    private Long idCategoria;
 
     /** Filtro por ID de proveedor. */
     @Min(value = 1, message = "ID de proveedor inválido.")
-    private Integer idProveedor;
+    private Long idProveedor;
 
     /** Filtro por marca. */
     @Size(max = 50, message = "La marca es demasiado larga.")

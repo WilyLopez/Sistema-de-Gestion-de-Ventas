@@ -43,7 +43,7 @@ public class UsuarioUpdateDTO {
 
     /** ID del rol asignado (Opcional, pero si se envía debe ser válido). */
     @Positive(message = "El ID del rol debe ser un número positivo.")
-    private Integer idRol;
+    private Long idRol;
 
     /** Estado del usuario. */
     private Boolean estado;

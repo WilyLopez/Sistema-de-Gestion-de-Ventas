@@ -67,9 +67,9 @@ public class ProductoUpdateDTO {
 
     /** ID de la categoría. */
     @Positive(message = "El ID de la categoría debe ser positivo.")
-    private Integer idCategoria;
+    private Long idCategoria;
 
     /** ID del proveedor. */
     @Positive(message = "El ID del proveedor debe ser positivo.")
-    private Integer idProveedor;
+    private Long idProveedor;
 }

@@ -56,11 +56,11 @@ public class ProductoCreateDTO {
     /** ID de la categoría (Obligatorio). */
     @NotNull(message = "La categoría es obligatoria.")
     @Positive(message = "El ID de la categoría debe ser positivo.")
-    private Integer idCategoria;
+    private Long idCategoria;
 
     /** ID del proveedor (Opcional). */
     @Positive(message = "El ID del proveedor debe ser positivo.")
-    private Integer idProveedor;
+    private Long idProveedor;
 
     // Campos opcionales sin validación de NotBlank, solo Size
     @Size(max = 10, message = "La talla no puede exceder los 10 caracteres.")

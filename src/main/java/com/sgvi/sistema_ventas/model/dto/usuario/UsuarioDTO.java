@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class UsuarioDTO {
 
     /** Identificador único del usuario. */
-    private Integer idUsuario;
+    private Long idUsuario;
 
     /** Nombre de usuario para login. */
     private String username;
@@ -41,7 +41,7 @@ public class UsuarioDTO {
     private Boolean estado;
 
     /** Identificador del Rol. */
-    private Integer idRol;
+    private Long idRol;
 
     /** Nombre del Rol. */
     private String nombreRol;
