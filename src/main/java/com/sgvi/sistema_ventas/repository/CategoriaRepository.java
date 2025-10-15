@@ -9,6 +9,6 @@ import org.springframework.stereotype.Repository;
  * Permite la gestión de categorías de productos.
  */
 @Repository
-public interface CategoriaRepository extends JpaRepository<Categoria, Integer> {
+public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Se pueden añadir métodos para buscar por nombre único si aplica
 }

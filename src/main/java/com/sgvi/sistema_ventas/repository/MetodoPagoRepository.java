@@ -9,6 +9,6 @@ import org.springframework.stereotype.Repository;
  * Proporciona acceso a los métodos de pago aceptados en la tienda (RF-007).
  */
 @Repository
-public interface MetodoPagoRepository extends JpaRepository<MetodoPago, Integer> {
+public interface MetodoPagoRepository extends JpaRepository<MetodoPago, Long> {
     // Se pueden añadir métodos de búsqueda por nombre si se requiere verificar unicidad
 }

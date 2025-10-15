@@ -1,7 +1,6 @@
 package com.sgvi.sistema_ventas.repository;
 
 import com.sgvi.sistema_ventas.model.entity.RolPermiso;
-import com.sgvi.sistema_ventas.model.entity.RolPermisoId; // Asumiendo una clase de ID compuesto
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -11,7 +10,7 @@ import java.util.List;
  * Gestiona las asignaciones de permisos a roles (RF-002).
  */
 @Repository
-public interface RolPermisoRepository extends JpaRepository<RolPermiso, RolPermisoId> {
+public interface RolPermisoRepository extends JpaRepository<RolPermiso, Long> {
 
     /**
      * Encuentra todos los permisos asociados a un Rol específico.

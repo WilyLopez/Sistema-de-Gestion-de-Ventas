@@ -11,7 +11,7 @@ import java.util.Optional;
  * Proporciona operaciones CRUD para la gestión de proveedores.
  */
 @Repository
-public interface ProveedorRepository extends JpaRepository<Proveedor, Integer> {
+public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
 
     /**
      * Busca un proveedor por su RUC (Restricción Legal/Tributaria Peruana).

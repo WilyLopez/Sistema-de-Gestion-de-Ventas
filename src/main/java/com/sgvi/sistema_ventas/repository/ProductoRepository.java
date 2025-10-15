@@ -11,7 +11,7 @@ import java.util.Optional;
  * Extiende JpaSpecificationExecutor para búsquedas avanzadas y filtrado (RF-005 Read).
  */
 @Repository
-public interface ProductoRepository extends JpaRepository<Producto, Integer>, JpaSpecificationExecutor<Producto> {
+public interface ProductoRepository extends JpaRepository<Producto, Long>, JpaSpecificationExecutor<Producto> {
 
     /**
      * Busca un producto por su código único (SKU).

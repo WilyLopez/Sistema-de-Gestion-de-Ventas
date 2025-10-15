@@ -10,7 +10,7 @@ import java.util.Optional;
  * Soporta la creación, búsqueda y actualización de información de clientes (RF-010).
  */
 @Repository
-public interface ClienteRepository extends JpaRepository<Cliente, Integer> {
+public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
     /**
      * Busca un cliente por su número de documento (DNI, RUC, CE).

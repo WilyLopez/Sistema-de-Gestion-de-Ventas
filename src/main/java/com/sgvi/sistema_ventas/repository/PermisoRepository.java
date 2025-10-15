@@ -9,6 +9,6 @@ import org.springframework.stereotype.Repository;
  * Contiene la lista de permisos que pueden ser asignados a los roles.
  */
 @Repository
-public interface PermisoRepository extends JpaRepository<Permiso, Integer> {
+public interface PermisoRepository extends JpaRepository<Permiso, Long> {
     // Métodos de búsqueda comunes si fueran necesarios, ej: findByNombre(String nombre)
 }

@@ -10,7 +10,7 @@ import java.util.Optional;
  * Proporciona métodos CRUD y de búsqueda para la gestión de usuarios y autenticación.
  */
 @Repository
-public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     /**
      * Busca un usuario por su nombre de usuario (username), esencial para el login (RF-001).

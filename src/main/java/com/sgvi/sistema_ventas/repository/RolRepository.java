@@ -10,7 +10,7 @@ import java.util.Optional;
  * Permite la gestión de roles en el sistema (RF-002).
  */
 @Repository
-public interface RolRepository extends JpaRepository<Rol, Integer> {
+public interface RolRepository extends JpaRepository<Rol, Long> {
 
     /**
      * Busca un rol por su nombre.
