@@ -20,7 +20,7 @@ public class Categoria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idcategoria")
-    private Integer idCategoria;
+    private Long idCategoria;
 
     /** Nombre único de la categoría. */
     @Column(name = "nombre", nullable = false, length = 50, unique = true)

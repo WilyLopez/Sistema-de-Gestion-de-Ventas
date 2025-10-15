@@ -22,7 +22,7 @@ public class Producto {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idproducto")
-    private Integer idProducto;
+    private Long idProducto;
 
     /** Código de producto único (e.g., SKU). */
     @Column(name = "codigo", nullable = false, length = 50, unique = true)
@@ -86,11 +86,11 @@ public class Producto {
 
     /** Clave foránea a Categoria (Obligatoria). */
     @Column(name = "idcategoria", nullable = false)
-    private Integer idCategoria;
+    private Long idCategoria;
 
     /** Clave foránea a Proveedor (Opcional). */
     @Column(name = "idproveedor")
-    private Integer idProveedor;
+    private Long idProveedor;
 
     /** Fecha de creación del registro. */
     @Column(name = "fechacreacion", updatable = false)

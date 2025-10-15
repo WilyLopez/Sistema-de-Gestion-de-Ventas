@@ -23,7 +23,7 @@ public class Rol {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idrol")
-    private Integer idRol;
+    private Long idRol;
 
     /** Nombre único del rol (e.g., 'administrador', 'vendedor'). */
     @Column(name = "nombre", nullable = false, length = 50, unique = true)

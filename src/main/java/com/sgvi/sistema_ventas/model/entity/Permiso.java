@@ -19,7 +19,7 @@ public class Permiso {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idpermiso")
-    private Integer idPermiso;
+    private Long idPermiso;
 
     /** Nombre único del permiso (e.g., 'venta.crear'). */
     @Column(name = "nombre", nullable = false, length = 100, unique = true)

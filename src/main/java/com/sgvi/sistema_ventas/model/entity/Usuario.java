@@ -20,7 +20,7 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idusuario")
-    private Integer idUsuario;
+    private Long idUsuario;
 
     /** Nombre de usuario único para inicio de sesión. */
     @Column(name = "username", nullable = false, length = 50, unique = true)
@@ -56,7 +56,7 @@ public class Usuario {
 
     /** Clave foránea al Rol. */
     @Column(name = "idrol", nullable = false)
-    private Integer idRol;
+    private Long idRol;
 
     /** Fecha de creación del registro. */
     @Column(name = "fechacreacion", updatable = false)

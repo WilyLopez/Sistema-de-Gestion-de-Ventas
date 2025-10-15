@@ -20,7 +20,7 @@ public class Proveedor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idproveedor")
-    private Integer idProveedor;
+    private Long idProveedor;
 
     /** Número de RUC (Registro Único de Contribuyentes) único del proveedor. */
     @Column(name = "ruc", length = 15, unique = true)

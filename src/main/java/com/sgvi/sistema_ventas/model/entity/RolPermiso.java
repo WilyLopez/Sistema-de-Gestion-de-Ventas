@@ -20,12 +20,12 @@ public class RolPermiso implements Serializable {
     /** Clave foránea al Rol. Parte de la Clave Compuesta. */
     @Id
     @Column(name = "idrol")
-    private Integer idRol;
+    private Long idRol;
 
     /** Clave foránea al Permiso. Parte de la Clave Compuesta. */
     @Id
     @Column(name = "idpermiso")
-    private Integer idPermiso;
+    private Long idPermiso;
 
     // --- Relaciones (Opcional, si se desea navegar desde aquí) ---
 
@@ -46,7 +46,7 @@ public class RolPermiso implements Serializable {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RolPermisoId implements Serializable {
-        private Integer idRol;
-        private Integer idPermiso;
+        private Long idRol;
+        private Long idPermiso;
     }
 }

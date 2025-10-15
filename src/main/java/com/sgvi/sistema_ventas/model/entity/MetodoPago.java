@@ -19,7 +19,7 @@ public class MetodoPago {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idmetodopago")
-    private Integer idMetodoPago;
+    private Long idMetodoPago;
 
     /** Nombre único del método de pago. */
     @Column(name = "nombre", nullable = false, length = 50, unique = true)

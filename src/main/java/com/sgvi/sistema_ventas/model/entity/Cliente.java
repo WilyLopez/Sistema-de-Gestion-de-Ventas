@@ -24,7 +24,7 @@ public class Cliente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idcliente")
-    private Integer idCliente;
+    private Long idCliente;
 
     /**
      * Tipo de documento de identidad.
