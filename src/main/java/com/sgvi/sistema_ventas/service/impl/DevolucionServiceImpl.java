@@ -1,5 +1,8 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.BusinessException;
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
+import com.sgvi.sistema_ventas.exception.VentaException;
 import com.sgvi.sistema_ventas.model.entity.Devolucion;
 import com.sgvi.sistema_ventas.model.entity.DetalleDevolucion;
 import com.sgvi.sistema_ventas.model.entity.Venta;
@@ -49,7 +52,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
 
         // Validar que la venta existe y está dentro del plazo
         if (!estaDentroPlazo(devolucion.getVenta().getIdVenta())) {
-            throw new IllegalArgumentException("La venta está fuera del plazo de devolución (30 días)");
+            throw new VentaException("La venta está fuera del plazo de devolución (30 días)");
         }
 
         // Validar cantidades
@@ -89,7 +92,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
         Devolucion devolucion = obtenerPorId(idDevolucion);
 
         if (!devolucion.puedeModificarse()) {
-            throw new IllegalArgumentException("La devolución no puede ser aprobada en su estado actual");
+            throw new BusinessException("La devolución no puede ser aprobada en su estado actual");
         }
 
         devolucion.setEstado(EstadoDevolucion.APROBADA);
@@ -107,7 +110,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
         Devolucion devolucion = obtenerPorId(idDevolucion);
 
         if (!devolucion.puedeModificarse()) {
-            throw new IllegalArgumentException("La devolución no puede ser rechazada en su estado actual");
+            throw new BusinessException("La devolución no puede ser rechazada en su estado actual");
         }
 
         devolucion.setEstado(EstadoDevolucion.RECHAZADA);
@@ -126,7 +129,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
         Devolucion devolucion = obtenerPorId(idDevolucion);
 
         if (!devolucion.puedeProcesarse()) {
-            throw new IllegalArgumentException("La devolución debe estar en estado APROBADA para completarse");
+            throw new BusinessException("La devolución debe estar en estado APROBADA para completarse");
         }
 
         devolucion.setEstado(EstadoDevolucion.COMPLETADA);
@@ -154,7 +157,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
     @Transactional(readOnly = true)
     public Devolucion obtenerPorId(Long id) {
         return devolucionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Devolución no encontrada con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Devolución no encontrada con ID: " + id));
     }
 
     @Override
@@ -177,7 +180,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
     @Transactional(readOnly = true)
     public boolean estaDentroPlazo(Long idVenta) {
         Venta venta = ventaRepository.findById(idVenta)
-                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada"));
 
         LocalDateTime fechaLimite = venta.getFechaVenta().plusDays(DIAS_PLAZO_DEVOLUCION);
         return LocalDateTime.now().isBefore(fechaLimite);

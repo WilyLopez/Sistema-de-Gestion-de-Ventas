@@ -1,5 +1,8 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.BusinessException;
+import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.model.entity.Categoria;
 import com.sgvi.sistema_ventas.repository.CategoriaRepository;
 import com.sgvi.sistema_ventas.service.interfaces.ICategoriaService;
@@ -55,7 +58,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
         // Validar nombre único si cambió
         if (!categoriaExistente.getNombre().equals(categoria.getNombre())
                 && existeNombre(categoria.getNombre())) {
-            throw new IllegalArgumentException("El nombre de categoría ya existe: " + categoria.getNombre());
+            throw new DuplicateResourceException("El nombre de categoría ya existe: " + categoria.getNombre());
         }
 
         categoriaExistente.setNombre(categoria.getNombre());
@@ -73,7 +76,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
         log.info("Eliminando categoría con ID: {}", id);
 
         if (tieneProductos(id)) {
-            throw new IllegalArgumentException("No se puede eliminar la categoría porque tiene productos asociados");
+            throw new BusinessException("No se puede eliminar la categoría porque tiene productos asociados");
         }
 
         Categoria categoria = obtenerPorId(id);
@@ -88,7 +91,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
     @Transactional(readOnly = true)
     public Categoria obtenerPorId(Long id) {
         return categoriaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con ID: " + id));
     }
 
     @Override
@@ -133,7 +136,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
         }
 
         if (existeNombre(categoria.getNombre())) {
-            throw new IllegalArgumentException("El nombre de categoría ya existe: " + categoria.getNombre());
+            throw new DuplicateResourceException("El nombre de categoría ya existe: " + categoria.getNombre());
         }
     }
 }

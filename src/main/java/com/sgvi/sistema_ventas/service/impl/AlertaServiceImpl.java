@@ -1,5 +1,6 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.model.entity.AlertaStock;
 import com.sgvi.sistema_ventas.service.interfaces.IAlertaService;
 import com.sgvi.sistema_ventas.model.entity.Producto;
@@ -163,7 +164,7 @@ public class AlertaServiceImpl implements IAlertaService {
         log.info("Marcando alerta {} como leída por usuario {}", idAlerta, idUsuario);
 
         AlertaStock alerta = alertaRepository.findById(idAlerta)
-                .orElseThrow(() -> new IllegalArgumentException("Alerta no encontrada con ID: " + idAlerta));
+                .orElseThrow(() -> new ResourceNotFoundException("Alerta no encontrada con ID: " + idAlerta));
 
         Usuario usuario = obtenerUsuario(idUsuario);
 
@@ -187,7 +188,7 @@ public class AlertaServiceImpl implements IAlertaService {
     @Override
     public void registrarAccion(Long idAlerta, String accion) {
         AlertaStock alerta = alertaRepository.findById(idAlerta)
-                .orElseThrow(() -> new IllegalArgumentException("Alerta no encontrada con ID: " + idAlerta));
+                .orElseThrow(() -> new ResourceNotFoundException("Alerta no encontrada con ID: " + idAlerta));
 
         alerta.registrarAccion(accion);
         alertaRepository.save(alerta);
@@ -230,11 +231,11 @@ public class AlertaServiceImpl implements IAlertaService {
 
     private Producto obtenerProducto(Long idProducto) {
         return productoRepository.findById(idProducto)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + idProducto));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + idProducto));
     }
 
     private Usuario obtenerUsuario(Long idUsuario) {
         return usuarioRepository.findById(idUsuario)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + idUsuario));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
     }
 }

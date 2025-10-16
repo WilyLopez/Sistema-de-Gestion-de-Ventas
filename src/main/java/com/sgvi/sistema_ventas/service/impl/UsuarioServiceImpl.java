@@ -1,5 +1,9 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
+import com.sgvi.sistema_ventas.exception.UnauthorizedException;
+import com.sgvi.sistema_ventas.exception.ValidationException;
 import com.sgvi.sistema_ventas.model.entity.Usuario;
 import com.sgvi.sistema_ventas.repository.UsuarioRepository;
 import com.sgvi.sistema_ventas.service.interfaces.IUsuarioService;
@@ -63,12 +67,12 @@ public class UsuarioServiceImpl implements IUsuarioService {
         // Validar que no se duplique username o correo (excepto el mismo usuario)
         if (!usuarioExistente.getUsername().equals(usuario.getUsername())
                 && existeUsername(usuario.getUsername())) {
-            throw new IllegalArgumentException("El username ya existe: " + usuario.getUsername());
+            throw new DuplicateResourceException("El username ya existe: " + usuario.getUsername());
         }
 
         if (!usuarioExistente.getCorreo().equals(usuario.getCorreo())
                 && existeCorreo(usuario.getCorreo())) {
-            throw new IllegalArgumentException("El correo ya existe: " + usuario.getCorreo());
+            throw new DuplicateResourceException("El correo ya existe: " + usuario.getCorreo());
         }
 
         // Actualizar campos permitidos (no se actualiza contraseña aquí)
@@ -115,7 +119,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
     @Transactional(readOnly = true)
     public Usuario obtenerPorId(Long id) {
         return usuarioRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + id));
     }
 
     @Override
@@ -157,14 +161,14 @@ public class UsuarioServiceImpl implements IUsuarioService {
         log.info("Autenticando usuario: {}", username);
 
         Usuario usuario = obtenerPorUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Credenciales inválidas"));
+                .orElseThrow(() -> new UnauthorizedException("Credenciales inválidas"));
 
         if (!usuario.getEstado()) {
-            throw new IllegalArgumentException("Usuario inactivo");
+            throw new UnauthorizedException("Usuario inactivo");
         }
 
         if (!passwordEncoder.matches(contrasena, usuario.getContrasena())) {
-            throw new IllegalArgumentException("Credenciales inválidas");
+            throw new UnauthorizedException("Credenciales inválidas");
         }
 
         log.info("Usuario autenticado exitosamente: {}", username);
@@ -179,7 +183,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
         // Verificar contraseña actual
         if (!passwordEncoder.matches(contrasenaActual, usuario.getContrasena())) {
-            throw new IllegalArgumentException("Contraseña actual incorrecta");
+            throw new UnauthorizedException("Contraseña actual incorrecta");
         }
 
         // Validar nueva contraseña
@@ -221,15 +225,15 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
     private void validarUsuarioNuevo(Usuario usuario) {
         if (usuario.getUsername() == null || usuario.getUsername().trim().isEmpty()) {
-            throw new IllegalArgumentException("El username es obligatorio");
+            throw new ValidationException("El username es obligatorio");
         }
 
         if (existeUsername(usuario.getUsername())) {
-            throw new IllegalArgumentException("El username ya existe: " + usuario.getUsername());
+            throw new DuplicateResourceException("El username ya existe: " + usuario.getUsername());
         }
 
         if (existeCorreo(usuario.getCorreo())) {
-            throw new IllegalArgumentException("El correo ya existe: " + usuario.getCorreo());
+            throw new DuplicateResourceException("El correo ya existe: " + usuario.getCorreo());
         }
 
         validarContrasena(usuario.getContrasena());
@@ -238,14 +242,14 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
     private void validarContrasena(String contrasena) {
         if (contrasena == null || contrasena.length() < 6) {
-            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
+            throw new ValidationException("La contraseña debe tener al menos 6 caracteres");
         }
     }
 
     private void validarEmail(String email) {
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         if (email == null || !email.matches(emailRegex)) {
-            throw new IllegalArgumentException("El formato del correo es inválido");
+            throw new ValidationException("El formato del correo es inválido");
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
+import com.sgvi.sistema_ventas.exception.StockInsuficienteException;
 import com.sgvi.sistema_ventas.model.entity.Inventario;
 import com.sgvi.sistema_ventas.model.entity.Producto;
 import com.sgvi.sistema_ventas.model.entity.Usuario;
@@ -87,7 +89,7 @@ public class InventarioServiceImpl implements IInventarioService {
 
         // Validar stock suficiente
         if (producto.getStock() < cantidad) {
-            throw new IllegalArgumentException(
+            throw new StockInsuficienteException(
                     "Stock insuficiente. Disponible: " + producto.getStock() + ", Solicitado: " + cantidad
             );
         }
@@ -208,12 +210,12 @@ public class InventarioServiceImpl implements IInventarioService {
 
     private Producto obtenerProducto(Long idProducto) {
         return productoRepository.findById(idProducto)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + idProducto));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + idProducto));
     }
 
     private Usuario obtenerUsuario(Long idUsuario) {
         return usuarioRepository.findById(idUsuario)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + idUsuario));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
     }
 
     private void validarMovimiento(Inventario movimiento) {

@@ -1,5 +1,8 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
+import com.sgvi.sistema_ventas.exception.StockInsuficienteException;
+import com.sgvi.sistema_ventas.exception.VentaException;
 import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
 import com.sgvi.sistema_ventas.model.entity.Producto;
 import com.sgvi.sistema_ventas.model.entity.Venta;
@@ -55,7 +58,7 @@ public class VentaServiceImpl implements IVentaService {
         for (DetalleVenta detalle : detalles) {
             if (!productoService.verificarStock(detalle.getProducto().getIdProducto(), detalle.getCantidad())) {
                 Producto producto = productoService.obtenerPorId(detalle.getProducto().getIdProducto());
-                throw new IllegalArgumentException(
+                throw new StockInsuficienteException(
                         "Stock insuficiente para producto: " + producto.getNombre() +
                                 ". Stock disponible: " + producto.getStock()
                 );
@@ -110,14 +113,14 @@ public class VentaServiceImpl implements IVentaService {
     @Transactional(readOnly = true)
     public Venta obtenerPorId(Long id) {
         return ventaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada con ID: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Venta obtenerPorCodigo(String codigoVenta) {
         return ventaRepository.findByCodigoVenta(codigoVenta)
-                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada con código: " + codigoVenta));
+                .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada con código: " + codigoVenta));
     }
 
     @Override
@@ -143,7 +146,7 @@ public class VentaServiceImpl implements IVentaService {
         log.info("Anulando venta ID: {}", idVenta);
 
         if (!puedeAnularse(idVenta)) {
-            throw new IllegalArgumentException("La venta no puede ser anulada. Debe estar en estado PAGADO y tener menos de 24 horas");
+            throw new VentaException("La venta no puede ser anulada. Debe estar en estado PAGADO y tener menos de 24 horas");
         }
 
         Venta venta = obtenerPorId(idVenta);
@@ -252,3 +255,4 @@ public class VentaServiceImpl implements IVentaService {
         }
     }
 }
+

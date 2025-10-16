@@ -1,11 +1,14 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
+import com.sgvi.sistema_ventas.exception.StockInsuficienteException;
+import com.sgvi.sistema_ventas.exception.ValidationException;
 import com.sgvi.sistema_ventas.model.entity.Producto;
 import com.sgvi.sistema_ventas.model.enums.Genero;
 import com.sgvi.sistema_ventas.repository.ProductoRepository;
 import com.sgvi.sistema_ventas.service.interfaces.IAlertaService;
 import com.sgvi.sistema_ventas.service.interfaces.IProductoService;
-import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -70,7 +73,7 @@ public class ProductoServiceImpl implements IProductoService {
         // Validar código único si cambió
         if (!productoExistente.getCodigo().equals(producto.getCodigo())
                 && existeCodigo(producto.getCodigo())) {
-            throw new IllegalArgumentException("El código de producto ya existe: " + producto.getCodigo());
+            throw new DuplicateResourceException("El código de producto ya existe: " + producto.getCodigo());
         }
 
         validarPrecios(producto.getPrecioCompra(), producto.getPrecioVenta());
@@ -114,14 +117,14 @@ public class ProductoServiceImpl implements IProductoService {
     @Transactional(readOnly = true)
     public Producto obtenerPorId(Long id) {
         return productoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Producto obtenerPorCodigo(String codigo) {
         return productoRepository.findByCodigo(codigo)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con código: " + codigo));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con código: " + codigo));
     }
 
     @Override
@@ -206,7 +209,7 @@ public class ProductoServiceImpl implements IProductoService {
         int nuevoStock = stockAnterior + cantidad;
 
         if (nuevoStock < 0) {
-            throw new IllegalArgumentException(
+            throw new StockInsuficienteException(
                     "Stock insuficiente. Stock actual: " + stockAnterior + ", cantidad solicitada: " + Math.abs(cantidad)
             );
         }
@@ -263,11 +266,11 @@ public class ProductoServiceImpl implements IProductoService {
 
     private void validarProductoNuevo(Producto producto) {
         if (producto.getCodigo() == null || producto.getCodigo().trim().isEmpty()) {
-            throw new IllegalArgumentException("El código del producto es obligatorio");
+            throw new ValidationException("El código del producto es obligatorio");
         }
 
         if (existeCodigo(producto.getCodigo())) {
-            throw new IllegalArgumentException("El código de producto ya existe: " + producto.getCodigo());
+            throw new DuplicateResourceException("El código de producto ya existe: " + producto.getCodigo());
         }
 
         if (producto.getNombre() == null || producto.getNombre().trim().isEmpty()) {

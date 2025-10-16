@@ -1,5 +1,8 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.BusinessException;
+import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.model.entity.Rol;
 import com.sgvi.sistema_ventas.model.entity.Permiso;
 import com.sgvi.sistema_ventas.model.entity.RolPermiso;
@@ -61,7 +64,7 @@ public class RolServiceImpl implements IRolService {
         // Validar nombre si cambió
         if (!rolExistente.getNombre().equals(rol.getNombre())
                 && existePorNombre(rol.getNombre())) {
-            throw new IllegalArgumentException("El nombre del rol ya existe: " + rol.getNombre());
+            throw new DuplicateResourceException("El nombre del rol ya existe: " + rol.getNombre());
         }
 
         rolExistente.setNombre(rol.getNombre());
@@ -84,7 +87,7 @@ public class RolServiceImpl implements IRolService {
         if (rol.getNombre().equals("administrador") ||
                 rol.getNombre().equals("vendedor") ||
                 rol.getNombre().equals("empleado")) {
-            throw new IllegalArgumentException("No se pueden eliminar roles del sistema");
+            throw new BusinessException("No se pueden eliminar roles del sistema");
         }
 
         rol.setEstado(false);
@@ -97,14 +100,14 @@ public class RolServiceImpl implements IRolService {
     @Transactional(readOnly = true)
     public Rol obtenerPorId(Long id) {
         return rolRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Rol no encontrado con ID: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Rol obtenerPorNombre(String nombre) {
         return rolRepository.findByNombre(nombre)
-                .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado: " + nombre));
+                .orElseThrow(() -> new ResourceNotFoundException("Rol no encontrado: " + nombre));
     }
 
     @Override
@@ -131,7 +134,7 @@ public class RolServiceImpl implements IRolService {
         // Asignar nuevos permisos
         for (Long idPermiso : idsPermisos) {
             Permiso permiso = permisoRepository.findById(idPermiso)
-                    .orElseThrow(() -> new IllegalArgumentException("Permiso no encontrado: " + idPermiso));
+                    .orElseThrow(() -> new ResourceNotFoundException("Permiso no encontrado: " + idPermiso));
 
             RolPermiso rolPermiso = RolPermiso.builder()
                     .idRol(idRol)
@@ -180,7 +183,7 @@ public class RolServiceImpl implements IRolService {
         }
 
         if (existePorNombre(rol.getNombre())) {
-            throw new IllegalArgumentException("El nombre del rol ya existe: " + rol.getNombre());
+            throw new DuplicateResourceException("El nombre del rol ya existe: " + rol.getNombre());
         }
 
         if (rol.getNivelAcceso() == null || rol.getNivelAcceso() < 1 || rol.getNivelAcceso() > 10) {

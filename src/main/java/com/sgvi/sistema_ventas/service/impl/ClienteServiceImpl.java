@@ -1,5 +1,7 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.model.entity.Cliente;
 import com.sgvi.sistema_ventas.model.enums.TipoDocumento;
 import com.sgvi.sistema_ventas.repository.ClienteRepository;
@@ -56,14 +58,14 @@ public class ClienteServiceImpl implements IClienteService {
         // Validar documento si cambió
         if (!clienteExistente.getNumeroDocumento().equals(cliente.getNumeroDocumento())
                 && existeDocumento(cliente.getTipoDocumento(), cliente.getNumeroDocumento())) {
-            throw new IllegalArgumentException("El documento ya está registrado");
+            throw new DuplicateResourceException("El documento ya está registrado");
         }
 
         // Validar correo si cambió
         if (cliente.getCorreo() != null
                 && !cliente.getCorreo().equals(clienteExistente.getCorreo())
                 && existeCorreo(cliente.getCorreo())) {
-            throw new IllegalArgumentException("El correo ya está registrado");
+            throw new DuplicateResourceException("El correo ya está registrado");
         }
 
         // Actualizar campos
@@ -97,7 +99,7 @@ public class ClienteServiceImpl implements IClienteService {
     @Transactional(readOnly = true)
     public Cliente obtenerPorId(Long id) {
         return clienteRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + id));
     }
 
     @Override
@@ -105,7 +107,7 @@ public class ClienteServiceImpl implements IClienteService {
     public Cliente buscarPorDocumento(TipoDocumento tipoDocumento, String numeroDocumento) {
         return clienteRepository.findByTipoDocumentoAndNumeroDocumento(
                         tipoDocumento.getCodigo(), numeroDocumento)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Cliente no encontrado con documento: " + tipoDocumento + " " + numeroDocumento));
     }
 
@@ -184,7 +186,7 @@ public class ClienteServiceImpl implements IClienteService {
         }
 
         if (existeDocumento(cliente.getTipoDocumento(), cliente.getNumeroDocumento())) {
-            throw new IllegalArgumentException("El documento ya está registrado");
+            throw new DuplicateResourceException("El documento ya está registrado");
         }
 
         if (cliente.getNombre() == null || cliente.getNombre().trim().isEmpty()) {
@@ -197,7 +199,7 @@ public class ClienteServiceImpl implements IClienteService {
 
         if (cliente.getCorreo() != null && !cliente.getCorreo().trim().isEmpty()) {
             if (existeCorreo(cliente.getCorreo())) {
-                throw new IllegalArgumentException("El correo ya está registrado");
+                throw new DuplicateResourceException("El correo ya está registrado");
             }
             validarEmail(cliente.getCorreo());
         }

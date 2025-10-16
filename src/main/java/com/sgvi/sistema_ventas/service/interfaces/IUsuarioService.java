@@ -1,6 +1,9 @@
 package com.sgvi.sistema_ventas.service.interfaces;
 
 
+import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
+import com.sgvi.sistema_ventas.exception.UnauthorizedException;
 import com.sgvi.sistema_ventas.model.entity.Usuario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +25,7 @@ public interface IUsuarioService {
      * @param usuario Entidad Usuario a crear
      * @return Usuario creado con ID asignado
      * @throws IllegalArgumentException si los datos son inválidos
+     * @throws DuplicateResourceException si username o correo ya existen
      */
     Usuario crear(Usuario usuario);
 
@@ -30,18 +34,21 @@ public interface IUsuarioService {
      * @param id ID del usuario a actualizar
      * @param usuario Datos actualizados del usuario
      * @return Usuario actualizado
+     * @throws ResourceNotFoundException si el usuario no existe
      */
     Usuario actualizar(Long id, Usuario usuario);
 
     /**
      * RF-003: Desactivar un usuario (soft delete)
      * @param id ID del usuario a desactivar
+     * @throws ResourceNotFoundException si el usuario no existe
      */
     void desactivar(Long id);
 
     /**
      * RF-003: Activar un usuario previamente desactivado
      * @param id ID del usuario a activar
+     * @throws ResourceNotFoundException si el usuario no existe
      */
     void activar(Long id);
 
@@ -49,6 +56,7 @@ public interface IUsuarioService {
      * RF-003: Obtener usuario por ID
      * @param id ID del usuario
      * @return Usuario encontrado
+     * @throws ResourceNotFoundException si el usuario no existe
      */
     Usuario obtenerPorId(Long id);
 
@@ -87,6 +95,7 @@ public interface IUsuarioService {
      * @param username Nombre de usuario
      * @param contrasena Contraseña sin encriptar
      * @return Usuario autenticado
+     * @throws UnauthorizedException si las credenciales son inválidas
      */
     Usuario autenticar(String username, String contrasena);
 
@@ -95,6 +104,7 @@ public interface IUsuarioService {
      * @param id ID del usuario
      * @param contrasenaActual Contraseña actual
      * @param contrasenaNueva Nueva contraseña
+     * @throws UnauthorizedException si la contraseña actual no coincide
      */
     void cambiarContrasena(Long id, String contrasenaActual, String contrasenaNueva);
 

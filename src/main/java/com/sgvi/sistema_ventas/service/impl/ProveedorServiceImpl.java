@@ -1,5 +1,7 @@
 package com.sgvi.sistema_ventas.service.impl;
 
+import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
+import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.model.entity.Proveedor;
 import com.sgvi.sistema_ventas.repository.ProveedorRepository;
 import com.sgvi.sistema_ventas.service.interfaces.IProveedorService;
@@ -56,7 +58,7 @@ public class ProveedorServiceImpl implements IProveedorService {
         if (proveedor.getRuc() != null
                 && !proveedorExistente.getRuc().equals(proveedor.getRuc())
                 && existeRuc(proveedor.getRuc())) {
-            throw new IllegalArgumentException("El RUC ya está registrado: " + proveedor.getRuc());
+            throw new DuplicateResourceException("El RUC ya está registrado: " + proveedor.getRuc());
         }
 
         proveedorExistente.setRuc(proveedor.getRuc());
@@ -86,14 +88,14 @@ public class ProveedorServiceImpl implements IProveedorService {
     @Transactional(readOnly = true)
     public Proveedor obtenerPorId(Long id) {
         return proveedorRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con ID: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Proveedor buscarPorRuc(String ruc) {
         return proveedorRepository.findByRuc(ruc)
-                .orElseThrow(() -> new IllegalArgumentException( "Proveedor no encontrado con RUC: " + ruc));
+                .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con RUC: " + ruc));
     }
 
     @Override
@@ -157,9 +159,8 @@ public class ProveedorServiceImpl implements IProveedorService {
             }
 
             if (existeRuc(proveedor.getRuc())) {
-                throw new IllegalArgumentException("El RUC ya está registrado: " + proveedor.getRuc());
+                throw new DuplicateResourceException("El RUC ya está registrado: " + proveedor.getRuc());
             }
         }
     }
 }
-
