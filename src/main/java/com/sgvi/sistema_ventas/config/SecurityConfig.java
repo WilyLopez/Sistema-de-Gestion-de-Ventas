@@ -55,28 +55,28 @@ public class SecurityConfig {
                 // Configurar autorización de endpoints
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints públicos (sin autenticación)
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
 
                         // Swagger/OpenAPI (si está configurado)
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
                         // Endpoints de administración (solo ADMIN)
-                        .requestMatchers("/api/v1/usuarios/**").hasRole("ADMINISTRADOR")
-                        .requestMatchers("/api/v1/roles/**").hasRole("ADMINISTRADOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/api/usuarios/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/api/roles/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMINISTRADOR")
 
                         // Endpoints de ventas (ADMIN y VENDEDOR)
-                        .requestMatchers("/api/v1/ventas/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
-                        .requestMatchers("/api/v1/clientes/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
+                        .requestMatchers("/api/ventas/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
+                        .requestMatchers("/api/clientes/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
 
                         // Endpoints de productos (todos autenticados)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/productos/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/productos/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
+                        .requestMatchers(HttpMethod.GET, "/api/productos/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/productos/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasAnyRole("ADMINISTRADOR", "VENDEDOR")
 
                         // Reportes (todos los roles autenticados)
-                        .requestMatchers("/api/v1/reportes/**").authenticated()
+                        .requestMatchers("/api/reportes/**").authenticated()
 
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()

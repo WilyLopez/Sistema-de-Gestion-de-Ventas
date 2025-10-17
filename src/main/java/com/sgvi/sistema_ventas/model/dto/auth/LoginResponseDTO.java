@@ -4,21 +4,26 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.sgvi.sistema_ventas.model.dto.usuario.UsuarioDTO;
 
 /**
- * DTO para la respuesta después de un login exitoso.
- * Combina el token JWT con la información principal del usuario.
+ * DTO para respuesta de login exitoso.
+ *
+ * @author Wilian Lopez
+ * @version 1.0
+ * @since 2024
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class LoginResponseDTO {
 
-    /** El objeto que contiene el token JWT. */
-    private JwtTokenDTO tokenInfo;
-
-    /** Información esencial del usuario que ha iniciado sesión. */
-    private UsuarioDTO userInfo;
+    private String token;
+    private String type = "Bearer";
+    private Long id;
+    private String username;
+    private String nombre;
+    private String apellido;
+    private String email;
+    private String rol;
 }

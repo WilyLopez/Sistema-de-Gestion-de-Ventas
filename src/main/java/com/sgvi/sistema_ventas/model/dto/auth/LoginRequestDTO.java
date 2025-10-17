@@ -1,29 +1,25 @@
 package com.sgvi.sistema_ventas.model.dto.auth;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
 /**
- * DTO para la solicitud de inicio de sesión.
- * Contiene las credenciales del usuario.
+ * DTO para petición de login.
+ *
+ * @author Wilian Lopez
+ * @version 1.0
+ * @since 2024
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class LoginRequestDTO {
 
-    /** Nombre de usuario o correo electrónico. */
-    @NotBlank(message = "El nombre de usuario/correo no puede estar vacío.")
+    @NotBlank(message = "El username es obligatorio")
     private String username;
 
-    /** Contraseña del usuario. */
-    @NotBlank(message = "La contraseña no puede estar vacía.")
-    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres.")
+    @NotBlank(message = "La contraseña es obligatoria")
     private String password;
 }
