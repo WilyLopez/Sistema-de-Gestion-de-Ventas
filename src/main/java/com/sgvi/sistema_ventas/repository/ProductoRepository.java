@@ -122,6 +122,12 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
      */
     List<Producto> findByStockBetween(Integer stockMinimo, Integer stockMaximo);
 
+    List<Producto> findByEstadoTrue();
+    List<Producto> findByEstadoTrueAndStockLessThanEqual();
+    Long countByEstadoTrue();
+    Long countByEstadoTrueAndStockLessThanEqual(int stock);
+    Long countByEstadoTrueAndStockLessThanEqual();
+
     /**
      * Busca productos con precio de venta dentro de un rango específico.
      *

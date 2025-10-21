@@ -30,6 +30,8 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     // RF-012: Movimientos por tipo
     Page<Inventario> findByTipoMovimiento(TipoMovimiento tipoMovimiento, Pageable pageable);
 
+    List<Inventario> findByFechaMovimientoBetween(LocalDateTime inicio, LocalDateTime fin);
+
     // RF-012: Movimientos por usuario
     Page<Inventario> findByUsuarioId(Long idUsuario, Pageable pageable);
 

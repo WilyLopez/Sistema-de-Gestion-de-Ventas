@@ -28,6 +28,8 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     // RF-008: Consulta de ventas con filtros
     Optional<Venta> findByCodigoVenta(String codigoVenta);
 
+    List<Venta> findByFechaVentaBetween(LocalDateTime inicio, LocalDateTime fin);
+
     // RF-008: Búsqueda por cliente
     Page<Venta> findByClienteId(Long idCliente, Pageable pageable);
 

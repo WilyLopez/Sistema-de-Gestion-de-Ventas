@@ -27,6 +27,7 @@ public interface DevolucionRepository extends JpaRepository<Devolucion, Long> {
     // RF-013: Devoluciones por venta
     List<Devolucion> findByVentaId(Long idVenta);
 
+    List<Devolucion> findByFechaDevolucionBetween(LocalDateTime inicio, LocalDateTime fin);
     // RF-013: Devoluciones por cliente
     @Query("SELECT d FROM Devolucion d WHERE d.venta.cliente.id = :idCliente")
     Page<Devolucion> findByClienteId(@Param("idCliente") Long idCliente, Pageable pageable);
