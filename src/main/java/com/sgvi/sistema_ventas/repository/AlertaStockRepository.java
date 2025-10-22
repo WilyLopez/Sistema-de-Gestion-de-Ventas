@@ -29,7 +29,7 @@ public interface AlertaStockRepository extends JpaRepository<AlertaStock, Long> 
     Page<AlertaStock> findByLeidaFalse(Pageable pageable);
 
     // RF-011: Alertas por producto
-    Page<AlertaStock> findByProductoId(Long idProducto, Pageable pageable);
+    Page<AlertaStock> findByProductoIdProducto(Long idProducto, Pageable pageable);
 
     // RF-011: Alertas por tipo
     Page<AlertaStock> findByTipoAlerta(TipoAlerta tipoAlerta, Pageable pageable);
@@ -42,7 +42,7 @@ public interface AlertaStockRepository extends JpaRepository<AlertaStock, Long> 
 
     // RF-011: Búsqueda combinada con filtros
     @Query("SELECT a FROM AlertaStock a WHERE " +
-            "(:idProducto IS NULL OR a.producto.id = :idProducto) AND " +
+            "(:idProducto IS NULL OR a.producto.idProducto = :idProducto) AND " + // ⬅️ CAMBIO AQUÍ
             "(:tipoAlerta IS NULL OR a.tipoAlerta = :tipoAlerta) AND " +
             "(:nivelUrgencia IS NULL OR a.nivelUrgencia = :nivelUrgencia) AND " +
             "(:leida IS NULL OR a.leida = :leida) AND " +
@@ -65,10 +65,9 @@ public interface AlertaStockRepository extends JpaRepository<AlertaStock, Long> 
     List<AlertaStock> findByNivelUrgenciaAndLeidaFalse(NivelUrgencia nivelUrgencia);
 
     // RF-011: Verificar si ya existe alerta similar no leída
-    @Query("SELECT COUNT(a) > 0 FROM AlertaStock a WHERE a.producto.id = :idProducto AND a.tipoAlerta = :tipoAlerta AND a.leida = false")
+    @Query("SELECT COUNT(a) > 0 FROM AlertaStock a WHERE a.producto.idProducto = :idProducto AND a.tipoAlerta = :tipoAlerta AND a.leida = false") // ⬅️ CAMBIO AQUÍ
     boolean existsAlertaSimilarNoLeida(@Param("idProducto") Long idProducto,
                                        @Param("tipoAlerta") TipoAlerta tipoAlerta);
-
     // RF-011: Marcar alertas como leídas
     @Modifying
     @Query("UPDATE AlertaStock a SET a.leida = true, a.fechaLectura = :fechaLectura, a.usuarioNotificado.id = :idUsuario WHERE a.id = :idAlerta")

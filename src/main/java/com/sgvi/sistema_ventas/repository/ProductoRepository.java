@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal; // Importación necesaria para el método de rango de precio
 import java.util.List;
 import java.util.Optional;
 
@@ -16,9 +17,10 @@ import java.util.Optional;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
+    // --- Métodos de Búsqueda por Propiedad ---
+
     /**
      * Busca un producto por su código único.
-     *
      * @param codigo el código del producto a buscar
      * @return Optional con el producto encontrado o vacío si no existe
      */
@@ -26,7 +28,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /**
      * Verifica si existe un producto con el código especificado.
-     *
      * @param codigo el código del producto a verificar
      * @return true si existe, false en caso contrario
      */
@@ -34,15 +35,19 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /**
      * Busca productos por estado activo/inactivo.
-     *
      * @param estado true para productos activos, false para inactivos
      * @return lista de productos que coinciden con el estado
      */
     List<Producto> findByEstado(Boolean estado);
 
     /**
+     * Busca productos por estado activo (convenience method).
+     * @return lista de productos activos
+     */
+    List<Producto> findByEstadoTrue();
+
+    /**
      * Busca productos por categoría.
-     *
      * @param idCategoria el identificador de la categoría
      * @return lista de productos de la categoría especificada
      */
@@ -50,7 +55,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /**
      * Busca productos por proveedor.
-     *
      * @param idProveedor el identificador del proveedor
      * @return lista de productos del proveedor especificado
      */
@@ -58,7 +62,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /**
      * Busca productos por marca.
-     *
      * @param marca la marca de los productos a buscar
      * @return lista de productos de la marca especificada
      */
@@ -66,15 +69,13 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /**
      * Busca productos por género.
-     *
-     * @param genero el género de los productos a buscar
+     * @param genero el género de los productos a buscar (String del Enum Genero)
      * @return lista de productos del género especificado
      */
     List<Producto> findByGenero(String genero);
 
     /**
      * Busca productos por talla.
-     *
      * @param talla la talla de los productos a buscar
      * @return lista de productos de la talla especificada
      */
@@ -82,58 +83,68 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /**
      * Busca productos por color.
-     *
      * @param color el color de los productos a buscar
      * @return lista de productos del color especificado
      */
     List<Producto> findByColor(String color);
 
-    /**
-     * Busca productos cuyo stock esté por debajo del stock mínimo.
-     *
-     * @return lista de productos con stock bajo
-     */
-    @Query("SELECT p FROM Producto p WHERE p.stock <= p.stockMinimo AND p.estado = true")
-    List<Producto> findProductosConStockBajo();
-
-    /**
-     * Busca productos agotados (stock = 0).
-     *
-     * @return lista de productos agotados
-     */
-    @Query("SELECT p FROM Producto p WHERE p.stock = 0 AND p.estado = true")
-    List<Producto> findProductosAgotados();
-
-    /**
-     * Busca productos por nombre o descripción (búsqueda case-insensitive).
-     *
-     * @param texto el texto a buscar en nombre o descripción
-     * @return lista de productos que coinciden con el criterio
-     */
-    @Query("SELECT p FROM Producto p WHERE (LOWER(p.nombre) LIKE LOWER(CONCAT('%', :texto, '%')) OR LOWER(p.descripcion) LIKE LOWER(CONCAT('%', :texto, '%'))) AND p.estado = true")
-    List<Producto> findByNombreOrDescripcionContainingIgnoreCase(@Param("texto") String texto);
+    // --- Métodos de Búsqueda por Rango y Stock ---
 
     /**
      * Busca productos con stock entre un rango específico.
-     *
      * @param stockMinimo stock mínimo del rango
      * @param stockMaximo stock máximo del rango
      * @return lista de productos dentro del rango de stock
      */
     List<Producto> findByStockBetween(Integer stockMinimo, Integer stockMaximo);
 
-    List<Producto> findByEstadoTrue();
-    List<Producto> findByEstadoTrueAndStockLessThanEqual();
-    Long countByEstadoTrue();
-    Long countByEstadoTrueAndStockLessThanEqual(int stock);
-    Long countByEstadoTrueAndStockLessThanEqual();
-
     /**
      * Busca productos con precio de venta dentro de un rango específico.
-     *
+     * ⚠️ Nota: Usamos BigDecimal para precios
      * @param precioMinimo precio mínimo del rango
      * @param precioMaximo precio máximo del rango
      * @return lista de productos dentro del rango de precios
      */
-    List<Producto> findByPrecioVentaBetween(Double precioMinimo, Double precioMaximo);
+    List<Producto> findByPrecioVentaBetween(BigDecimal precioMinimo, BigDecimal precioMaximo);
+
+    // --- Métodos de Búsqueda Personalizados (HQL/JPA) ---
+
+    /**
+     * Busca productos cuyo stock esté por debajo del stock mínimo (y estén activos).
+     * @return lista de productos con stock bajo
+     */
+    @Query("SELECT p FROM Producto p WHERE p.stock <= p.stockMinimo AND p.estado = true")
+    List<Producto> findProductosConStockBajo();
+
+    /**
+     * Busca productos agotados (stock = 0 y activos).
+     * @return lista de productos agotados
+     */
+    @Query("SELECT p FROM Producto p WHERE p.stock = 0 AND p.estado = true")
+    List<Producto> findProductosAgotados();
+
+    /**
+     * Busca productos por nombre o descripción (búsqueda case-insensitive y activos).
+     * @param texto el texto a buscar en nombre o descripción
+     * @return lista de productos que coinciden con el criterio
+     */
+    @Query("SELECT p FROM Producto p WHERE (LOWER(p.nombre) LIKE LOWER(CONCAT('%', :texto, '%')) OR LOWER(p.descripcion) LIKE LOWER(CONCAT('%', :texto, '%'))) AND p.estado = true")
+    List<Producto> findByNombreOrDescripcionContainingIgnoreCase(@Param("texto") String texto);
+
+    // --- Métodos de Conteo ---
+
+    /**
+     * Cuenta el total de productos activos.
+     * @return el conteo de productos activos
+     */
+    Long countByEstadoTrue();
+
+    /**
+     * Cuenta el total de productos activos cuyo stock es menor o igual a un límite dado.
+     * @param stock el límite de stock para el conteo
+     * @return el conteo de productos bajo el límite de stock
+     */
+    Long countByEstadoTrueAndStockLessThanEqual(Integer stock);
+
+
 }

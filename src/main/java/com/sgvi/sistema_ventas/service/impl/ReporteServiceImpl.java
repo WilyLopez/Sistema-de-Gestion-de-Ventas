@@ -56,7 +56,7 @@ public class ReporteServiceImpl implements IReporteService {
         log.info("Generando reporte de ventas en Excel del {} al {}", fechaInicio, fechaFin);
 
         try {
-            List<Venta> ventas = ventaRepository.findByFechaVentaBetween(fechaInicio, fechaFin);
+            List<Venta> ventas = ventaRepository.findByFechaCreacionBetween(fechaInicio, fechaFin);
 
             if (ventas.isEmpty()) {
                 log.warn("No se encontraron ventas en el rango de fechas especificado");
@@ -91,7 +91,7 @@ public class ReporteServiceImpl implements IReporteService {
         try {
             // Consulta productos donde Stock <= StockMinimo
             List<Producto> productosStockBajo = productoRepository
-                    .findByEstadoTrueAndStockLessThanEqual();
+                    .findProductosConStockBajo();
 
             if (productosStockBajo.isEmpty()) {
                 log.info("No hay productos con stock bajo");
@@ -159,7 +159,7 @@ public class ReporteServiceImpl implements IReporteService {
             LocalDateTime finHoy = hoy.toLocalDate().atTime(23, 59, 59);
 
             // KPI 1: Ventas de hoy
-            List<Venta> ventasHoy = ventaRepository.findByFechaVentaBetween(inicioHoy, finHoy);
+            List<Venta> ventasHoy = ventaRepository.findByFechaCreacionBetween(inicioHoy, finHoy);
             BigDecimal totalVentasHoy = ventasHoy.stream()
                     .map(Venta::getTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -172,7 +172,7 @@ public class ReporteServiceImpl implements IReporteService {
             datos.put("productosStockCritico", stockCritico);
 
             // KPI 3: Alertas pendientes
-            Long alertasPendientes = productoRepository.countByEstadoTrueAndStockLessThanEqual();
+            Long alertasPendientes = productoRepository.countByEstadoTrueAndStockLessThanEqual(5);
             datos.put("alertasPendientes", alertasPendientes);
 
             // KPI 4: Top 5 productos más vendidos del mes
@@ -189,7 +189,7 @@ public class ReporteServiceImpl implements IReporteService {
             datos.put("totalProductos", totalProductos);
 
             // KPI 7: Ventas del mes
-            List<Venta> ventasMes = ventaRepository.findByFechaVentaBetween(inicioMes, hoy);
+            List<Venta> ventasMes = ventaRepository.findByFechaCreacionBetween(inicioMes, hoy);
             BigDecimal totalVentasMes = ventasMes.stream()
                     .map(Venta::getTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -219,7 +219,7 @@ public class ReporteServiceImpl implements IReporteService {
 
         try {
             // Obtener todas las ventas del período
-            List<Venta> ventas = ventaRepository.findByFechaVentaBetween(fechaInicio, fechaFin);
+            List<Venta> ventas = ventaRepository.findByFechaCreacionBetween(fechaInicio, fechaFin);
 
             // Agrupar por categoría y sumar totales
             Map<String, BigDecimal> ventasPorCategoria = new HashMap<>();
@@ -264,7 +264,7 @@ public class ReporteServiceImpl implements IReporteService {
 
         try {
             // Obtener todas las ventas del período
-            List<Venta> ventas = ventaRepository.findByFechaVentaBetween(fechaInicio, fechaFin);
+            List<Venta> ventas = ventaRepository.findByFechaCreacionBetween(fechaInicio, fechaFin);
 
             // Agrupar por producto y sumar cantidades
             Map<Producto, Integer> productosCantidad = new HashMap<>();
@@ -341,7 +341,7 @@ public class ReporteServiceImpl implements IReporteService {
         log.info("Generando reporte de ventas en PDF del {} al {}", fechaInicio, fechaFin);
 
         try {
-            List<Venta> ventas = ventaRepository.findByFechaVentaBetween(fechaInicio, fechaFin);
+            List<Venta> ventas = ventaRepository.findByFechaCreacionBetween(fechaInicio, fechaFin);
 
             if (ventas.isEmpty()) {
                 log.warn("No se encontraron ventas en el rango de fechas especificado");

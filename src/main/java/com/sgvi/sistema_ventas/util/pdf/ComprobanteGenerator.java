@@ -10,7 +10,7 @@ import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
 import com.sgvi.sistema_ventas.model.entity.Venta;
-import com.sgvi.sistema_ventas.util.NumberUtil;
+import com.sgvi.sistema_ventas.util.validation.NumberUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -115,7 +115,7 @@ public class ComprobanteGenerator extends PdfGenerator {
         Table infoTable = crearTabla(new float[]{50, 50});
 
         infoTable.addCell(crearCeldaSinBorde("Fecha: " +
-                venta.getFechaVenta().format(DATE_FORMATTER), false));
+                venta.getFechaCreacion().format(DATE_FORMATTER), false));
         infoTable.addCell(crearCeldaSinBorde("Vendedor: " +
                 venta.getUsuario().getNombre() + " " + venta.getUsuario().getApellido(), false));
 

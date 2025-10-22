@@ -15,45 +15,103 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository para la entidad Venta.
- * Proporciona métodos para gestionar ventas según RF-007, RF-008, RF-009
+ * Repositorio para la gestión de la entidad {@link Venta}.
+ * <p>
+ * Proporciona métodos CRUD básicos y consultas personalizadas
+ * para atender los requerimientos funcionales:
+ * <ul>
+ *   <li>RF-007 – Registro de ventas</li>
+ *   <li>RF-008 – Consulta y filtrado de ventas</li>
+ *   <li>RF-009 – Anulación de ventas</li>
+ *   <li>RF-014 – Reportes estadísticos de ventas</li>
+ * </ul>
+ * <p>
+ * Incluye consultas derivadas y personalizadas en JPQL.
  *
- * @author Wilian Lopez
- * @version 1.0
- * @since 2024
+ * @author
+ *     Wilian Lopez
+ * @version
+ *     1.1 (2025)
  */
 @Repository
 public interface VentaRepository extends JpaRepository<Venta, Long> {
 
-    // RF-008: Consulta de ventas con filtros
+    /**
+     * Busca una venta por su código único.
+     *
+     * @param codigoVenta Código de la venta (ej: "V-2024-00001").
+     * @return Venta encontrada o {@link Optional#empty()} si no existe.
+     */
     Optional<Venta> findByCodigoVenta(String codigoVenta);
 
-    List<Venta> findByFechaVentaBetween(LocalDateTime inicio, LocalDateTime fin);
+    /**
+     * Obtiene todas las ventas registradas entre dos fechas.
+     *
+     * @param inicio Fecha inicial del rango.
+     * @param fin Fecha final del rango.
+     * @return Lista de ventas en el período indicado.
+     */
+    List<Venta> findByFechaCreacionBetween(LocalDateTime inicio, LocalDateTime fin);
 
-    // RF-008: Búsqueda por cliente
-    Page<Venta> findByClienteId(Long idCliente, Pageable pageable);
+    /**
+     * Obtiene las ventas realizadas por un cliente específico.
+     *
+     * @param idCliente Identificador del cliente.
+     * @param pageable Parámetros de paginación.
+     * @return Página de ventas del cliente.
+     */
+    Page<Venta> findByClienteIdCliente(Long idCliente, Pageable pageable);
 
-    // RF-008: Búsqueda por vendedor
-    Page<Venta> findByUsuarioId(Long idUsuario, Pageable pageable);
+    /**
+     * Obtiene las ventas registradas por un vendedor (usuario) específico.
+     *
+     * @param idUsuario Identificador del usuario (vendedor).
+     * @param pageable Parámetros de paginación.
+     * @return Página de ventas realizadas por el usuario.
+     */
+    Page<Venta> findByUsuarioIdUsuario(Long idUsuario, Pageable pageable);
 
-    // RF-008: Filtro por estado
+    /**
+     * Filtra las ventas por su estado.
+     *
+     * @param estado Estado de la venta (Ej: PAGADO, ANULADO, etc.).
+     * @param pageable Parámetros de paginación.
+     * @return Página de ventas con el estado indicado.
+     */
     Page<Venta> findByEstado(EstadoVenta estado, Pageable pageable);
 
-    // RF-008: Filtro por método de pago
-    Page<Venta> findByMetodoPagoId(Long idMetodoPago, Pageable pageable);
+    /**
+     * Filtra las ventas por método de pago.
+     *
+     * @param idMetodoPago Identificador del método de pago.
+     * @param pageable Parámetros de paginación.
+     * @return Página de ventas filtradas por método de pago.
+     */
+    Page<Venta> findByMetodoPagoIdMetodoPago(Long idMetodoPago, Pageable pageable);
 
-    // RF-008: Búsqueda por rango de fechas
-    Page<Venta> findByFechaVentaBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin, Pageable pageable);
+    /**
+     * Obtiene las ventas dentro de un rango de fechas.
+     *
+     * @param fechaInicio Fecha inicial.
+     * @param fechaFin Fecha final.
+     * @param pageable Parámetros de paginación.
+     * @return Página de ventas dentro del período.
+     */
+    Page<Venta> findByFechaCreacionBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin, Pageable pageable);
 
-    // RF-008: Búsqueda combinada múltiples filtros
-    @Query("SELECT v FROM Venta v WHERE " +
-            "(:codigoVenta IS NULL OR v.codigoVenta LIKE %:codigoVenta%) AND " +
-            "(:idCliente IS NULL OR v.cliente.id = :idCliente) AND " +
-            "(:idUsuario IS NULL OR v.usuario.id = :idUsuario) AND " +
-            "(:estado IS NULL OR v.estado = :estado) AND " +
-            "(:idMetodoPago IS NULL OR v.metodoPago.id = :idMetodoPago) AND " +
-            "(:fechaInicio IS NULL OR v.fechaVenta >= :fechaInicio) AND " +
-            "(:fechaFin IS NULL OR v.fechaVenta <= :fechaFin)")
+    /**
+     * Búsqueda avanzada de ventas por múltiples filtros opcionales.
+     */
+    @Query("""
+           SELECT v FROM Venta v
+           WHERE (:codigoVenta IS NULL OR v.codigoVenta LIKE %:codigoVenta%)
+             AND (:idCliente IS NULL OR v.cliente.idCliente = :idCliente)
+             AND (:idUsuario IS NULL OR v.usuario.idUsuario = :idUsuario)
+             AND (:estado IS NULL OR v.estado = :estado)
+             AND (:idMetodoPago IS NULL OR v.metodoPago.idMetodoPago = :idMetodoPago)
+             AND (:fechaInicio IS NULL OR v.fechaCreacion >= :fechaInicio)
+             AND (:fechaFin IS NULL OR v.fechaCreacion <= :fechaFin)
+           """)
     Page<Venta> buscarVentasConFiltros(
             @Param("codigoVenta") String codigoVenta,
             @Param("idCliente") Long idCliente,
@@ -62,50 +120,91 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
             @Param("idMetodoPago") Long idMetodoPago,
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin,
-            Pageable pageable);
+            Pageable pageable
+    );
 
-    // RF-009: Verificar si venta puede ser anulada (menos de 24 horas)
-    @Query("SELECT v FROM Venta v WHERE v.id = :idVenta AND v.estado = 'PAGADO' AND v.fechaVenta >= :fechaLimite")
-    Optional<Venta> findVentaAnulable(@Param("idVenta") Long idVenta, @Param("fechaLimite") LocalDateTime fechaLimite);
+    /**
+     * Verifica si una venta puede ser anulada (dentro de las últimas 24 horas y con estado PAGADO).
+     */
+    @Query("""
+           SELECT v FROM Venta v
+           WHERE v.idVenta = :idVenta
+             AND v.estado = 'PAGADO'
+             AND v.fechaCreacion >= :fechaLimite
+           """)
+    Optional<Venta> findVentaAnulable(@Param("idVenta") Long idVenta,
+                                      @Param("fechaLimite") LocalDateTime fechaLimite);
 
-    // RF-014: Reporte de ventas por período
-    @Query("SELECT v FROM Venta v WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin ORDER BY v.fechaVenta DESC")
+    /**
+     * Obtiene las ventas realizadas en un período específico.
+     */
+    @Query("""
+           SELECT v FROM Venta v
+           WHERE v.fechaCreacion BETWEEN :fechaInicio AND :fechaFin
+           ORDER BY v.fechaCreacion DESC
+           """)
     List<Venta> findVentasPorPeriodo(@Param("fechaInicio") LocalDateTime fechaInicio,
                                      @Param("fechaFin") LocalDateTime fechaFin);
 
-    // RF-014: Total de ventas por período
-    @Query("SELECT COALESCE(SUM(v.total), 0) FROM Venta v WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin AND v.estado = 'PAGADO'")
+    /**
+     * Obtiene el monto total de ventas en un período (solo PAGADAS).
+     */
+    @Query("""
+           SELECT COALESCE(SUM(v.total), 0)
+           FROM Venta v
+           WHERE v.fechaCreacion BETWEEN :fechaInicio AND :fechaFin
+             AND v.estado = 'PAGADO'
+           """)
     BigDecimal getTotalVentasPorPeriodo(@Param("fechaInicio") LocalDateTime fechaInicio,
                                         @Param("fechaFin") LocalDateTime fechaFin);
 
-    // RF-014: Cantidad de ventas por período
-    @Query("SELECT COUNT(v) FROM Venta v WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin AND v.estado = 'PAGADO'")
+    /**
+     * Cuenta la cantidad total de ventas registradas en un período (solo PAGADAS).
+     */
+    @Query("""
+           SELECT COUNT(v)
+           FROM Venta v
+           WHERE v.fechaCreacion BETWEEN :fechaInicio AND :fechaFin
+             AND v.estado = 'PAGADO'
+           """)
     Long countVentasPorPeriodo(@Param("fechaInicio") LocalDateTime fechaInicio,
                                @Param("fechaFin") LocalDateTime fechaFin);
 
-    // RF-014: Ventas por categoría
-    @Query("SELECT dv.producto.categoria.nombre, SUM(dv.subtotal) " +
-            "FROM DetalleVenta dv " +
-            "WHERE dv.venta.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
-            "AND dv.venta.estado = 'PAGADO' " +
-            "GROUP BY dv.producto.categoria.nombre")
+    /**
+     * Obtiene el total de ventas agrupado por categoría de producto en un período dado.
+     */
+    @Query("""
+           SELECT dv.producto.categoria.nombre, SUM(dv.subtotal)
+           FROM DetalleVenta dv
+           WHERE dv.venta.fechaCreacion BETWEEN :fechaInicio AND :fechaFin
+             AND dv.venta.estado = 'PAGADO'
+           GROUP BY dv.producto.categoria.nombre
+           """)
     List<Object[]> getVentasPorCategoria(@Param("fechaInicio") LocalDateTime fechaInicio,
                                          @Param("fechaFin") LocalDateTime fechaFin);
 
-    // RF-014: Top productos más vendidos
-    @Query("SELECT dv.producto.nombre, SUM(dv.cantidad) as totalVendido " +
-            "FROM DetalleVenta dv " +
-            "WHERE dv.venta.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
-            "AND dv.venta.estado = 'PAGADO' " +
-            "GROUP BY dv.producto.id, dv.producto.nombre " +
-            "ORDER BY totalVendido DESC")
+    /**
+     * Obtiene los productos más vendidos (por cantidad) en un período dado.
+     */
+    @Query("""
+           SELECT dv.producto.nombre, SUM(dv.cantidad) as totalVendido
+           FROM DetalleVenta dv
+           WHERE dv.venta.fechaCreacion BETWEEN :fechaInicio AND :fechaFin
+             AND dv.venta.estado = 'PAGADO'
+           GROUP BY dv.producto.idProducto, dv.producto.nombre
+           ORDER BY totalVendido DESC
+           """)
     List<Object[]> getTopProductosVendidos(@Param("fechaInicio") LocalDateTime fechaInicio,
                                            @Param("fechaFin") LocalDateTime fechaFin,
                                            Pageable pageable);
 
-    // Verificar existencia de ventas para un cliente
-    boolean existsByClienteId(Long idCliente);
+    /**
+     * Verifica si existen ventas asociadas a un cliente específico.
+     */
+    boolean existsByClienteIdCliente(Long idCliente);
 
-    // Verificar existencia de ventas para un usuario
-    boolean existsByUsuarioId(Long idUsuario);
+    /**
+     * Verifica si existen ventas registradas por un usuario específico.
+     */
+    boolean existsByUsuarioIdUsuario(Long idUsuario);
 }

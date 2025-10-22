@@ -61,13 +61,6 @@ public class Venta {
     @JoinColumn(name = "idusuario", nullable = false)
     private Usuario usuario;
 
-    /**
-     * Fecha y hora en que se realizó la venta
-     * Se establece automáticamente al crear la venta
-     */
-    @Column(name = "fechaventa", nullable = false)
-    @Builder.Default
-    private LocalDateTime fechaVenta = LocalDateTime.now();
 
     /**
      * Subtotal de la venta (sin IGV)
@@ -208,9 +201,6 @@ public class Venta {
     protected void onCreate() {
         this.fechaCreacion = LocalDateTime.now();
         this.fechaActualizacion = LocalDateTime.now();
-        if (this.fechaVenta == null) {
-            this.fechaVenta = LocalDateTime.now();
-        }
     }
 
     @PreUpdate

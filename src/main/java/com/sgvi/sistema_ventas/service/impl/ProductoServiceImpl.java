@@ -179,8 +179,8 @@ public class ProductoServiceImpl implements IProductoService {
     @Transactional(readOnly = true)
     public Page<Producto> filtrarPorRangoPrecio(BigDecimal precioMin, BigDecimal precioMax, Pageable pageable) {
         List<Producto> productos = productoRepository.findByPrecioVentaBetween(
-                        precioMin.doubleValue(),
-                        precioMax.doubleValue())
+                        precioMin,
+                        precioMax)
                 .stream()
                 .toList();
 

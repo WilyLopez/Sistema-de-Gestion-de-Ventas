@@ -75,7 +75,6 @@ public class VentaServiceImpl implements IVentaService {
         venta.setTotal(totales[2]);
 
         // Establecer fecha y estado
-        venta.setFechaVenta(LocalDateTime.now());
         venta.setEstado(EstadoVenta.PAGADO);
         venta.setFechaCreacion(LocalDateTime.now());
         venta.setFechaActualizacion(LocalDateTime.now());
@@ -159,7 +158,7 @@ public class VentaServiceImpl implements IVentaService {
         ventaRepository.save(venta);
 
         // Revertir stock de todos los productos
-        List<DetalleVenta> detalles = detalleVentaRepository.findByVentaId(idVenta);
+        List<DetalleVenta> detalles = detalleVentaRepository.findByVentaIdVenta(idVenta);
         for (DetalleVenta detalle : detalles) {
             productoService.actualizarStock(
                     detalle.getProducto().getIdProducto(),

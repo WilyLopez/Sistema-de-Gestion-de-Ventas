@@ -25,7 +25,7 @@ import java.util.Optional;
 public interface InventarioRepository extends JpaRepository<Inventario, Long> {
 
     // RF-012: Movimientos por producto
-    Page<Inventario> findByProductoId(Long idProducto, Pageable pageable);
+    Page<Inventario> findByProductoIdProducto(Long idProducto, Pageable pageable);
 
     // RF-012: Movimientos por tipo
     Page<Inventario> findByTipoMovimiento(TipoMovimiento tipoMovimiento, Pageable pageable);
@@ -33,19 +33,19 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     List<Inventario> findByFechaMovimientoBetween(LocalDateTime inicio, LocalDateTime fin);
 
     // RF-012: Movimientos por usuario
-    Page<Inventario> findByUsuarioId(Long idUsuario, Pageable pageable);
+    Page<Inventario> findByUsuarioIdUsuario(Long idUsuario, Pageable pageable);
 
     // RF-012: Movimientos por rango de fechas
     Page<Inventario> findByFechaMovimientoBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin, Pageable pageable);
 
     // RF-012: Movimientos por venta
-    List<Inventario> findByVentaId(Long idVenta);
+    List<Inventario> findByVentaIdVenta(Long idVenta);
 
     // RF-012: Búsqueda combinada con filtros
     @Query("SELECT i FROM Inventario i WHERE " +
-            "(:idProducto IS NULL OR i.producto.id = :idProducto) AND " +
+            "(:idProducto IS NULL OR i.producto.idProducto = :idProducto) AND " +
             "(:tipoMovimiento IS NULL OR i.tipoMovimiento = :tipoMovimiento) AND " +
-            "(:idUsuario IS NULL OR i.usuario.id = :idUsuario) AND " +
+            "(:idUsuario IS NULL OR i.usuario.idUsuario = :idUsuario) AND " +
             "(:fechaInicio IS NULL OR i.fechaMovimiento >= :fechaInicio) AND " +
             "(:fechaFin IS NULL OR i.fechaMovimiento <= :fechaFin)")
     Page<Inventario> buscarMovimientosConFiltros(
@@ -57,7 +57,7 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
             Pageable pageable);
 
     // RF-012: Trazabilidad completa de un producto
-    @Query("SELECT i FROM Inventario i WHERE i.producto.id = :idProducto ORDER BY i.fechaMovimiento DESC")
+    @Query("SELECT i FROM Inventario i WHERE i.producto.idProducto = :idProducto ORDER BY i.fechaMovimiento DESC")
     List<Inventario> findTrazabilidadProducto(@Param("idProducto") Long idProducto);
 
     // RF-014: Reporte de movimientos por período
@@ -66,19 +66,19 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
                                                @Param("fechaFin") LocalDateTime fechaFin);
 
     // RF-014: Total de entradas por producto en período
-    @Query("SELECT COALESCE(SUM(i.cantidad), 0) FROM Inventario i WHERE i.producto.id = :idProducto " +
+    @Query("SELECT COALESCE(SUM(i.cantidad), 0) FROM Inventario i WHERE i.producto.idProducto = :idProducto " +
             "AND i.tipoMovimiento IN ('ENTRADA', 'DEVOLUCION') AND i.fechaMovimiento BETWEEN :fechaInicio AND :fechaFin")
     Integer getTotalEntradasProducto(@Param("idProducto") Long idProducto,
                                      @Param("fechaInicio") LocalDateTime fechaInicio,
                                      @Param("fechaFin") LocalDateTime fechaFin);
 
     // RF-014: Total de salidas por producto en período
-    @Query("SELECT COALESCE(SUM(i.cantidad), 0) FROM Inventario i WHERE i.producto.id = :idProducto " +
+    @Query("SELECT COALESCE(SUM(i.cantidad), 0) FROM Inventario i WHERE i.producto.idProducto = :idProducto " +
             "AND i.tipoMovimiento = 'SALIDA' AND i.fechaMovimiento BETWEEN :fechaInicio AND :fechaFin")
     Integer getTotalSalidasProducto(@Param("idProducto") Long idProducto,
                                     @Param("fechaInicio") LocalDateTime fechaInicio,
                                     @Param("fechaFin") LocalDateTime fechaFin);
 
     // Último movimiento de un producto
-    Optional<Inventario> findFirstByProductoIdOrderByFechaMovimientoDesc(Long idProducto);
+    Optional<Inventario> findFirstByProductoIdProductoOrderByFechaMovimientoDesc(Long idProducto);
 }

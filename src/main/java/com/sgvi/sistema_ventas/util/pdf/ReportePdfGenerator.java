@@ -8,7 +8,7 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.sgvi.sistema_ventas.model.entity.Venta;
-import com.sgvi.sistema_ventas.util.NumberUtil;
+import com.sgvi.sistema_ventas.util.validation.NumberUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -113,7 +113,7 @@ public class ReportePdfGenerator extends PdfGenerator {
         for (Venta venta : ventas) {
             ventasTable.addCell(crearCeldaTabla(venta.getCodigoVenta()));
             ventasTable.addCell(crearCeldaTabla(
-                    venta.getFechaVenta().format(DATE_FORMATTER)));
+                    venta.getFechaCreacion().format(DATE_FORMATTER)));
             ventasTable.addCell(crearCeldaTabla(
                     venta.getCliente().getNombre() + " " + venta.getCliente().getApellido()));
             ventasTable.addCell(crearCeldaTabla(venta.getEstado().getDescripcion()));

@@ -145,7 +145,7 @@ public class AlertaServiceImpl implements IAlertaService {
     @Override
     @Transactional(readOnly = true)
     public Page<AlertaStock> obtenerAlertasPorProducto(Long idProducto, Pageable pageable) {
-        return alertaRepository.findByProductoId(idProducto, pageable);
+        return alertaRepository.findByProductoIdProducto(idProducto, pageable);
     }
 
     @Override

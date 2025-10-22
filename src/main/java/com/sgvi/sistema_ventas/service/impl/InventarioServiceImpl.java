@@ -169,7 +169,7 @@ public class InventarioServiceImpl implements IInventarioService {
     @Override
     @Transactional(readOnly = true)
     public Page<Inventario> obtenerMovimientosPorProducto(Long idProducto, Pageable pageable) {
-        return inventarioRepository.findByProductoId(idProducto, pageable);
+        return inventarioRepository.findByProductoIdProducto(idProducto, pageable);
     }
 
     @Override

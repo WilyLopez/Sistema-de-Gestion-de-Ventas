@@ -78,7 +78,7 @@ public class VentaExcelExporter extends ExcelExporter {
 
             // Fecha
             Cell cell1 = row.createCell(1);
-            cell1.setCellValue(venta.getFechaVenta().format(FORMATTER));
+            cell1.setCellValue(venta.getFechaCreacion().format(FORMATTER));
             cell1.setCellStyle(estiloDatos);
 
             // Cliente

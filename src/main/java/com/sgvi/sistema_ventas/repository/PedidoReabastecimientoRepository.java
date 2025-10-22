@@ -14,43 +14,110 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository para la entidad PedidoReabastecimiento.
- * Proporciona métodos para gestionar pedidos de reabastecimiento según RF-011
+ * Repository para la entidad {@link PedidoReabastecimiento}.
+ * <p>
+ * Proporciona métodos especializados para gestionar los pedidos de reabastecimiento
+ * según los requerimientos funcionales (RF-011, RF-014) del sistema de ventas.
+ * <p>
+ * Implementa consultas automáticas basadas en convenciones de Spring Data JPA
+ * y queries personalizadas para búsquedas filtradas y reportes.
  *
- * @author Wilian Lopez
- * @version 1.0
- * @since 2024
+ * @author
+ *     Wilian Lopez
+ * @version
+ *     1.1
+ * @since
+ *     2024
  */
 @Repository
 public interface PedidoReabastecimientoRepository extends JpaRepository<PedidoReabastecimiento, Long> {
 
-    // RF-011: Buscar por código único
+    /**
+     * Busca un pedido por su código único.
+     *
+     * @param codigoPedido código único del pedido (ejemplo: "REAB-2024-00001")
+     * @return pedido encontrado o vacío si no existe
+     */
     Optional<PedidoReabastecimiento> findByCodigoPedido(String codigoPedido);
 
-    // RF-011: Pedidos por proveedor
-    Page<PedidoReabastecimiento> findByProveedorId(Long idProveedor, Pageable pageable);
+    /**
+     * Obtiene los pedidos asociados a un proveedor específico.
+     *
+     * @param idProveedor ID del proveedor
+     * @param pageable    paginación
+     * @return página con los pedidos del proveedor
+     */
+    Page<PedidoReabastecimiento> findByProveedor_IdProveedor(Long idProveedor, Pageable pageable);
 
-    // RF-011: Pedidos por usuario solicitante
-    Page<PedidoReabastecimiento> findByUsuarioSolicitanteId(Long idUsuario, Pageable pageable);
+    /**
+     * Obtiene los pedidos solicitados por un usuario específico.
+     * <p>
+     * ⚠️ Usa la propiedad {@code idUsuario} de la entidad {@code Usuario}
+     * para evitar el error de mapeo.
+     *
+     * @param idUsuario ID del usuario solicitante
+     * @param pageable  paginación
+     * @return página con los pedidos del usuario solicitante
+     */
+    Page<PedidoReabastecimiento> findByUsuarioSolicitanteIdUsuario(Long idUsuario, Pageable pageable);
 
-    // RF-011: Pedidos por estado
+    /**
+     * Lista los pedidos por su estado actual.
+     *
+     * @param estado   estado del pedido
+     * @param pageable paginación
+     * @return página de pedidos filtrados por estado
+     */
     Page<PedidoReabastecimiento> findByEstado(EstadoPedido estado, Pageable pageable);
 
-    // RF-011: Pedidos por prioridad
+    /**
+     * Lista los pedidos según su nivel de prioridad.
+     *
+     * @param prioridad valor de prioridad (ejemplo: "normal", "urgente")
+     * @param pageable  paginación
+     * @return página con los pedidos de esa prioridad
+     */
     Page<PedidoReabastecimiento> findByPrioridad(String prioridad, Pageable pageable);
 
-    // RF-011: Pedidos por rango de fechas
-    Page<PedidoReabastecimiento> findByFechaSolicitudBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin, Pageable pageable);
+    /**
+     * Obtiene los pedidos realizados en un rango de fechas determinado.
+     *
+     * @param fechaInicio fecha inicial (inclusive)
+     * @param fechaFin    fecha final (inclusive)
+     * @param pageable    paginación
+     * @return página con los pedidos del rango indicado
+     */
+    Page<PedidoReabastecimiento> findByFechaSolicitudBetween(
+            LocalDateTime fechaInicio,
+            LocalDateTime fechaFin,
+            Pageable pageable
+    );
 
-    // RF-011: Búsqueda combinada con filtros
-    @Query("SELECT pr FROM PedidoReabastecimiento pr WHERE " +
-            "(:codigoPedido IS NULL OR pr.codigoPedido LIKE %:codigoPedido%) AND " +
-            "(:idProveedor IS NULL OR pr.proveedor.id = :idProveedor) AND " +
-            "(:idUsuario IS NULL OR pr.usuarioSolicitante.id = :idUsuario) AND " +
-            "(:estado IS NULL OR pr.estado = :estado) AND " +
-            "(:prioridad IS NULL OR pr.prioridad = :prioridad) AND " +
-            "(:fechaInicio IS NULL OR pr.fechaSolicitud >= :fechaInicio) AND " +
-            "(:fechaFin IS NULL OR pr.fechaSolicitud <= :fechaFin)")
+    /**
+     * Búsqueda avanzada de pedidos de reabastecimiento con múltiples filtros opcionales.
+     * <p>
+     * Todos los parámetros son opcionales (pueden ser null).
+     *
+     * @param codigoPedido filtro por código (opcional)
+     * @param idProveedor  filtro por proveedor (opcional)
+     * @param idUsuario    filtro por usuario solicitante (opcional)
+     * @param estado       filtro por estado (opcional)
+     * @param prioridad    filtro por prioridad (opcional)
+     * @param fechaInicio  filtro por fecha inicial (opcional)
+     * @param fechaFin     filtro por fecha final (opcional)
+     * @param pageable     configuración de paginación
+     * @return página con resultados que cumplen los filtros
+     */
+    @Query("""
+            SELECT pr FROM PedidoReabastecimiento pr 
+            WHERE (:codigoPedido IS NULL OR pr.codigoPedido LIKE %:codigoPedido%) 
+              AND (:idProveedor IS NULL OR pr.proveedor.id = :idProveedor)
+              AND (:idUsuario IS NULL OR pr.usuarioSolicitante.idUsuario = :idUsuario)
+              AND (:estado IS NULL OR pr.estado = :estado)
+              AND (:prioridad IS NULL OR pr.prioridad = :prioridad)
+              AND (:fechaInicio IS NULL OR pr.fechaSolicitud >= :fechaInicio)
+              AND (:fechaFin IS NULL OR pr.fechaSolicitud <= :fechaFin)
+            """)
     Page<PedidoReabastecimiento> buscarPedidosReabastecimientoConFiltros(
             @Param("codigoPedido") String codigoPedido,
             @Param("idProveedor") Long idProveedor,
@@ -59,21 +126,58 @@ public interface PedidoReabastecimientoRepository extends JpaRepository<PedidoRe
             @Param("prioridad") String prioridad,
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin,
-            Pageable pageable);
+            Pageable pageable
+    );
 
-    // RF-011: Pedidos pendientes de recepción
-    @Query("SELECT pr FROM PedidoReabastecimiento pr WHERE pr.estado IN ('APROBADO', 'ORDENADO', 'RECIBIDO_PARCIAL')")
+    /**
+     * Obtiene los pedidos que aún están pendientes de recepción.
+     * <p>
+     * Incluye estados: APROBADO, ORDENADO, RECIBIDO_PARCIAL.
+     *
+     * @return lista de pedidos pendientes de recepción
+     */
+    @Query("""
+            SELECT pr FROM PedidoReabastecimiento pr 
+            WHERE pr.estado IN ('APROBADO', 'ORDENADO', 'RECIBIDO_PARCIAL')
+            """)
     List<PedidoReabastecimiento> findPedidosPendientesRecepcion();
 
-    // RF-011: Pedidos urgentes
-    @Query("SELECT pr FROM PedidoReabastecimiento pr WHERE pr.prioridad = 'urgente' AND pr.estado IN ('PENDIENTE', 'APROBADO')")
+    /**
+     * Obtiene los pedidos marcados como urgentes
+     * que están en estado PENDIENTE o APROBADO.
+     *
+     * @return lista de pedidos urgentes
+     */
+    @Query("""
+            SELECT pr FROM PedidoReabastecimiento pr 
+            WHERE pr.prioridad = 'urgente' 
+              AND pr.estado IN ('PENDIENTE', 'APROBADO')
+            """)
     List<PedidoReabastecimiento> findPedidosUrgentes();
 
-    // RF-014: Reporte de reabastecimientos por período
-    @Query("SELECT pr FROM PedidoReabastecimiento pr WHERE pr.fechaSolicitud BETWEEN :fechaInicio AND :fechaFin ORDER BY pr.fechaSolicitud DESC")
-    List<PedidoReabastecimiento> findReabastecimientosPorPeriodo(@Param("fechaInicio") LocalDateTime fechaInicio,
-                                                                 @Param("fechaFin") LocalDateTime fechaFin);
+    /**
+     * Obtiene todos los pedidos de reabastecimiento registrados dentro de un período,
+     * ordenados por fecha de solicitud descendente.
+     *
+     * @param fechaInicio fecha inicial
+     * @param fechaFin    fecha final
+     * @return lista de pedidos dentro del rango
+     */
+    @Query("""
+            SELECT pr FROM PedidoReabastecimiento pr 
+            WHERE pr.fechaSolicitud BETWEEN :fechaInicio AND :fechaFin 
+            ORDER BY pr.fechaSolicitud DESC
+            """)
+    List<PedidoReabastecimiento> findReabastecimientosPorPeriodo(
+            @Param("fechaInicio") LocalDateTime fechaInicio,
+            @Param("fechaFin") LocalDateTime fechaFin
+    );
 
-    // Contar pedidos por estado
+    /**
+     * Cuenta cuántos pedidos existen en un determinado estado.
+     *
+     * @param estado estado del pedido
+     * @return cantidad de pedidos en ese estado
+     */
     long countByEstado(EstadoPedido estado);
 }

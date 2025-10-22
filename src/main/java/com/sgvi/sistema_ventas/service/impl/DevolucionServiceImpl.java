@@ -136,7 +136,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
         devolucionRepository.save(devolucion);
 
         // Actualizar stock de productos devueltos
-        List<DetalleDevolucion> detalles = detalleDevolucionRepository.findByDevolucionId(idDevolucion);
+        List<DetalleDevolucion> detalles = detalleDevolucionRepository.findByDevolucionIdDevolucion(idDevolucion);
         for (DetalleDevolucion detalle : detalles) {
             detalle.actualizarStockProducto();
 
@@ -163,7 +163,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
     @Override
     @Transactional(readOnly = true)
     public List<Devolucion> obtenerPorVenta(Long idVenta) {
-        return devolucionRepository.findByVentaId(idVenta);
+        return devolucionRepository.findByVentaIdVenta(idVenta);
     }
 
     @Override
@@ -182,7 +182,7 @@ public class DevolucionServiceImpl implements IDevolucionService {
         Venta venta = ventaRepository.findById(idVenta)
                 .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada"));
 
-        LocalDateTime fechaLimite = venta.getFechaVenta().plusDays(DIAS_PLAZO_DEVOLUCION);
+        LocalDateTime fechaLimite = venta.getFechaCreacion().plusDays(DIAS_PLAZO_DEVOLUCION);
         return LocalDateTime.now().isBefore(fechaLimite);
     }
 

@@ -20,23 +20,26 @@ import java.util.Optional;
 @Repository
 public interface DetalleDevolucionRepository extends JpaRepository<DetalleDevolucion, Long> {
 
+    // --- Métodos de Búsqueda por Nombre ---
+
     // Buscar detalles por devolución
-    List<DetalleDevolucion> findByDevolucionId(Long idDevolucion);
+    List<DetalleDevolucion> findByDevolucionIdDevolucion(Long idDevolucion);
 
     // Buscar detalles por producto
-    List<DetalleDevolucion> findByProductoId(Long idProducto);
+    List<DetalleDevolucion> findByProductoIdProducto(Long idProducto);
+
 
     // RF-013: Cantidad total devuelta de un producto
-    @Query("SELECT COALESCE(SUM(dd.cantidad), 0) FROM DetalleDevolucion dd WHERE dd.producto.id = :idProducto AND dd.devolucion.estado IN ('APROBADA', 'COMPLETADA')")
+    @Query("SELECT COALESCE(SUM(dd.cantidad), 0) FROM DetalleDevolucion dd WHERE dd.producto.idProducto = :idProducto AND dd.devolucion.estado IN ('APROBADA', 'COMPLETADA')")
     Integer getCantidadTotalDevuelta(@Param("idProducto") Long idProducto);
 
     // RF-013: Verificar cantidad máxima devolvable
-    @Query("SELECT dv.cantidad FROM DetalleVenta dv WHERE dv.venta.id = :idVenta AND dv.producto.id = :idProducto")
+    @Query("SELECT dv.cantidad FROM DetalleVenta dv WHERE dv.venta.idVenta = :idVenta AND dv.producto.idProducto = :idProducto")
     Optional<Integer> getCantidadVendida(@Param("idVenta") Long idVenta,
                                          @Param("idProducto") Long idProducto);
 
     // RF-013: Cantidad ya devuelta de un producto en una venta
-    @Query("SELECT COALESCE(SUM(dd.cantidad), 0) FROM DetalleDevolucion dd WHERE dd.devolucion.venta.id = :idVenta AND dd.producto.id = :idProducto AND dd.devolucion.estado IN ('APROBADA', 'COMPLETADA')")
+    @Query("SELECT COALESCE(SUM(dd.cantidad), 0) FROM DetalleDevolucion dd WHERE dd.devolucion.venta.idVenta = :idVenta AND dd.producto.idProducto = :idProducto AND dd.devolucion.estado IN ('APROBADA', 'COMPLETADA')")
     Integer getCantidadYaDevuelta(@Param("idVenta") Long idVenta,
                                   @Param("idProducto") Long idProducto);
 }

@@ -20,7 +20,7 @@ import java.util.Optional;
 public interface ComprobanteRepository extends JpaRepository<Comprobante, Long> {
 
     // Buscar por venta
-    Optional<Comprobante> findByVentaId(Long idVenta);
+    Optional<Comprobante> findByVenta_IdVenta(Long idVenta);
 
     // Verificar existencia de serie y número
     boolean existsBySerieAndNumero(String serie, String numero);

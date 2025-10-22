@@ -1,7 +1,6 @@
 package com.sgvi.sistema_ventas.controller.api;
 
 import com.sgvi.sistema_ventas.model.entity.Devolucion;
-import com.sgvi.sistema_ventas.model.entity.DetalleDevolucion;
 import com.sgvi.sistema_ventas.model.enums.EstadoDevolucion;
 import com.sgvi.sistema_ventas.service.interfaces.IDevolucionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

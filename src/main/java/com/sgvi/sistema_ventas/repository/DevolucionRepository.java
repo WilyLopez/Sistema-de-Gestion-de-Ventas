@@ -25,15 +25,15 @@ import java.util.Optional;
 public interface DevolucionRepository extends JpaRepository<Devolucion, Long> {
 
     // RF-013: Devoluciones por venta
-    List<Devolucion> findByVentaId(Long idVenta);
+    List<Devolucion> findByVentaIdVenta(Long idVenta);
 
     List<Devolucion> findByFechaDevolucionBetween(LocalDateTime inicio, LocalDateTime fin);
     // RF-013: Devoluciones por cliente
-    @Query("SELECT d FROM Devolucion d WHERE d.venta.cliente.id = :idCliente")
+    @Query("SELECT d FROM Devolucion d WHERE d.venta.cliente.idCliente = :idCliente")
     Page<Devolucion> findByClienteId(@Param("idCliente") Long idCliente, Pageable pageable);
 
     // RF-013: Devoluciones por usuario
-    Page<Devolucion> findByUsuarioId(Long idUsuario, Pageable pageable);
+    Page<Devolucion> findByUsuarioIdUsuario(Long idUsuario, Pageable pageable);
 
     // RF-013: Devoluciones por estado
     Page<Devolucion> findByEstado(EstadoDevolucion estado, Pageable pageable);
@@ -43,9 +43,9 @@ public interface DevolucionRepository extends JpaRepository<Devolucion, Long> {
 
     // RF-013: Búsqueda combinada con filtros
     @Query("SELECT d FROM Devolucion d WHERE " +
-            "(:idVenta IS NULL OR d.venta.id = :idVenta) AND " +
-            "(:idCliente IS NULL OR d.venta.cliente.id = :idCliente) AND " +
-            "(:idUsuario IS NULL OR d.usuario.id = :idUsuario) AND " +
+            "(:idVenta IS NULL OR d.venta.idVenta = :idVenta) AND " +          // ⬅️ CAMBIO: d.venta.idVenta
+            "(:idCliente IS NULL OR d.venta.cliente.idCliente = :idCliente) AND " + // ⬅️ CAMBIO: d.venta.cliente.idCliente
+            "(:idUsuario IS NULL OR d.usuario.idUsuario = :idUsuario) AND " +    // ⬅️ CAMBIO: d.usuario.idUsuario
             "(:estado IS NULL OR d.estado = :estado) AND " +
             "(:fechaInicio IS NULL OR d.fechaDevolucion >= :fechaInicio) AND " +
             "(:fechaFin IS NULL OR d.fechaDevolucion <= :fechaFin)")
