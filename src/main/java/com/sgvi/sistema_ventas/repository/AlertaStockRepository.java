@@ -42,7 +42,7 @@ public interface AlertaStockRepository extends JpaRepository<AlertaStock, Long> 
 
     // RF-011: Búsqueda combinada con filtros
     @Query("SELECT a FROM AlertaStock a WHERE " +
-            "(:idProducto IS NULL OR a.producto.idProducto = :idProducto) AND " + // ⬅️ CAMBIO AQUÍ
+            "(:idProducto IS NULL OR a.producto.idProducto = :idProducto) AND " +
             "(:tipoAlerta IS NULL OR a.tipoAlerta = :tipoAlerta) AND " +
             "(:nivelUrgencia IS NULL OR a.nivelUrgencia = :nivelUrgencia) AND " +
             "(:leida IS NULL OR a.leida = :leida) AND " +
