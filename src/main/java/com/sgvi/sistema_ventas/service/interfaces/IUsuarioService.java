@@ -4,6 +4,7 @@ package com.sgvi.sistema_ventas.service.interfaces;
 import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
 import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.exception.UnauthorizedException;
+import com.sgvi.sistema_ventas.model.dto.auth.RegisterRequestDTO;
 import com.sgvi.sistema_ventas.model.entity.Usuario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -135,4 +136,11 @@ public interface IUsuarioService {
      * @return true si existe, false en caso contrario
      */
     boolean existeCorreo(String correo);
+
+    /**
+     * Registrar nuevo usuario desde DTO de registro
+     * @param registerRequest DTO con datos de registro
+     * @return Usuario registrado
+     */
+    Usuario registrarUsuario(RegisterRequestDTO registerRequest);
 }
