@@ -23,7 +23,7 @@ import java.util.Set;
  * Controller REST para gestión de roles y permisos.
  * RF-002: Gestión de Roles y Permisos
  *
- * @author Wilian Lopez
+ * @author Kevyn
  * @version 1.0
  * @since 2024
  */

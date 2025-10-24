@@ -22,7 +22,7 @@ import java.util.Map;
  * Controller REST para gestión de alertas de stock.
  * RF-011: Sistema de Alertas de Stock
  *
- * @author Wilian Lopez
+ * @author Rosita Bustamante
  * @version 1.0
  * @since 2024
  */

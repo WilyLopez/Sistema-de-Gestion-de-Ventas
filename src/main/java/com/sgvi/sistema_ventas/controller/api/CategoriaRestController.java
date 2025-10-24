@@ -20,7 +20,7 @@ import java.util.List;
  * Controller REST para gestión de categorías.
  * RF-004: CRUD de Categorías
  *
- * @author Wilian Lopez
+ * @author Jhamil Suarez
  * @version 1.0
  * @since 2024
  */
