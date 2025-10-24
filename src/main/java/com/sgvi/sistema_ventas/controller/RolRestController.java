@@ -1,4 +1,4 @@
-package com.sgvi.sistema_ventas.controller.api;
+package com.sgvi.sistema_ventas.controller;
 
 import com.sgvi.sistema_ventas.model.entity.Permiso;
 import com.sgvi.sistema_ventas.model.entity.Rol;
