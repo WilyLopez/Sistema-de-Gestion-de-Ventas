@@ -27,7 +27,7 @@ public class VentaDTO {
     private String nombreCliente;
     private Long idUsuario;
     private String nombreUsuario;
-    private LocalDateTime fechaVenta;
+    private LocalDateTime fechaCreacion;
     private BigDecimal subtotal;
     private BigDecimal igv;
     private BigDecimal total;
@@ -36,7 +36,6 @@ public class VentaDTO {
     private EstadoVenta estado;
     private TipoComprobante tipoComprobante;
     private String observaciones;
-    private LocalDateTime fechaCreacion;
     private List<DetalleVentaDTO> detalles;
     private ComprobanteDTO comprobante;
 }

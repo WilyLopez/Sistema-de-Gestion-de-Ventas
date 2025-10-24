@@ -23,14 +23,17 @@ public class VentaResumenDTO {
     private String codigoVenta;
     private String nombreCliente;
     private String nombreUsuario;
-    private LocalDateTime fechaVenta;
+    private LocalDateTime fechaCreacion;
     private BigDecimal total;
     private EstadoVenta estado;
     private String metodoPago;
     private String comprobante;
     private Integer cantidadProductos;
 
-    // Método para formatear información de display
+    /**
+     * Método para formatear información de display
+     * @return String formateado con información de la venta
+     */
     public String getDisplayInfo() {
         return String.format("%s - %s - S/. %s",
                 codigoVenta,

@@ -32,25 +32,39 @@ public class VentaBusquedaDTO {
     private BigDecimal totalMaximo;
     private String tipoComprobante;
 
-    // Paginación
     private Integer pagina;
     private Integer tamanio;
     private String ordenarPor;
     private String direccion;
 
-    // Métodos utilitarios para paginación
+    /**
+     * Obtiene el número de página con valor por defecto
+     * @return Número de página (default: 0)
+     */
     public Integer getPagina() {
         return pagina != null ? pagina : 0;
     }
 
+    /**
+     * Obtiene el tamaño de página con valor por defecto
+     * @return Tamaño de página (default: 20)
+     */
     public Integer getTamanio() {
         return tamanio != null ? tamanio : 20;
     }
 
+    /**
+     * Obtiene el campo para ordenar con valor por defecto
+     * @return Campo de ordenamiento (default: fechaCreacion)
+     */
     public String getOrdenarPor() {
-        return ordenarPor != null ? ordenarPor : "fechaVenta";
+        return ordenarPor != null ? ordenarPor : "fechaCreacion";
     }
 
+    /**
+     * Obtiene la dirección de ordenamiento con valor por defecto
+     * @return Dirección (default: DESC)
+     */
     public String getDireccion() {
         return direccion != null ? direccion : "DESC";
     }

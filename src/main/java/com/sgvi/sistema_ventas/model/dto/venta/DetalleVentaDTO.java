@@ -43,12 +43,13 @@ public class DetalleVentaDTO {
     @Digits(integer = 10, fraction = 2, message = "El descuento debe tener máximo 2 decimales")
     private BigDecimal descuento;
 
-    @NotNull(message = "El subtotal es obligatorio")
-    @DecimalMin(value = "0.0", message = "El subtotal no puede ser negativo")
     @Digits(integer = 12, fraction = 2, message = "El subtotal debe tener máximo 2 decimales")
     private BigDecimal subtotal;
 
-    // Método para calcular subtotal
+    /**
+     * Calcula el subtotal del detalle de venta
+     * Subtotal = (Cantidad × PrecioUnitario) - Descuento
+     */
     public void calcularSubtotal() {
         if (cantidad != null && precioUnitario != null) {
             BigDecimal totalSinDescuento = precioUnitario.multiply(BigDecimal.valueOf(cantidad));

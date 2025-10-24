@@ -30,7 +30,10 @@ public class ComprobanteDTO {
     private BigDecimal total;
     private String estado;
 
-    // Método para generar número completo
+    /**
+     * Genera el número completo del comprobante
+     * @return Número completo en formato SERIE-NUMERO
+     */
     public String getNumeroCompleto() {
         if (serie != null && numero != null) {
             return String.format("%s-%s", serie, numero);
