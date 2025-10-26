@@ -1,10 +1,10 @@
 package com.sgvi.sistema_ventas.service.interfaces;
 
-
 import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
 import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.exception.UnauthorizedException;
 import com.sgvi.sistema_ventas.model.dto.auth.RegisterRequestDTO;
+import com.sgvi.sistema_ventas.model.dto.usuario.UsuarioDTO;
 import com.sgvi.sistema_ventas.model.entity.Usuario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,20 +24,20 @@ public interface IUsuarioService {
     /**
      * RF-003: Crear un nuevo usuario en el sistema
      * @param usuario Entidad Usuario a crear
-     * @return Usuario creado con ID asignado
+     * @return UsuarioDTO creado
      * @throws IllegalArgumentException si los datos son inválidos
      * @throws DuplicateResourceException si username o correo ya existen
      */
-    Usuario crear(Usuario usuario);
+    UsuarioDTO crear(Usuario usuario);
 
     /**
      * RF-003: Actualizar información de un usuario existente
      * @param id ID del usuario a actualizar
      * @param usuario Datos actualizados del usuario
-     * @return Usuario actualizado
+     * @return UsuarioDTO actualizado
      * @throws ResourceNotFoundException si el usuario no existe
      */
-    Usuario actualizar(Long id, Usuario usuario);
+    UsuarioDTO actualizar(Long id, Usuario usuario);
 
     /**
      * RF-003: Desactivar un usuario (soft delete)
@@ -56,10 +56,18 @@ public interface IUsuarioService {
     /**
      * RF-003: Obtener usuario por ID
      * @param id ID del usuario
-     * @return Usuario encontrado
+     * @return UsuarioDTO encontrado
      * @throws ResourceNotFoundException si el usuario no existe
      */
-    Usuario obtenerPorId(Long id);
+    UsuarioDTO obtenerPorId(Long id);
+
+    /**
+     * RF-003: Obtener usuario por ID (entidad)
+     * @param id ID del usuario
+     * @return Entidad Usuario encontrada
+     * @throws ResourceNotFoundException si el usuario no existe
+     */
+    Usuario obtenerEntidadPorId(Long id);
 
     /**
      * RF-003: Obtener usuario por username
@@ -71,25 +79,25 @@ public interface IUsuarioService {
     /**
      * RF-003: Listar todos los usuarios con paginación
      * @param pageable Parámetros de paginación
-     * @return Página de usuarios
+     * @return Página de usuarios (DTO)
      */
-    Page<Usuario> listarTodos(Pageable pageable);
+    Page<UsuarioDTO> listarTodos(Pageable pageable);
 
     /**
      * RF-003: Listar usuarios por estado (activo/inactivo)
      * @param estado Estado a filtrar
      * @param pageable Parámetros de paginación
-     * @return Página de usuarios filtrados
+     * @return Página de usuarios filtrados (DTO)
      */
-    Page<Usuario> listarPorEstado(Boolean estado, Pageable pageable);
+    Page<UsuarioDTO> listarPorEstado(Boolean estado, Pageable pageable);
 
     /**
      * RF-003: Buscar usuarios por nombre o apellido
      * @param nombre Texto a buscar
      * @param pageable Parámetros de paginación
-     * @return Página de usuarios que coinciden
+     * @return Página de usuarios que coinciden (DTO)
      */
-    Page<Usuario> buscarPorNombre(String nombre, Pageable pageable);
+    Page<UsuarioDTO> buscarPorNombre(String nombre, Pageable pageable);
 
     /**
      * RF-001: Autenticar usuario (validación de credenciales)
@@ -140,7 +148,7 @@ public interface IUsuarioService {
     /**
      * Registrar nuevo usuario desde DTO de registro
      * @param registerRequest DTO con datos de registro
-     * @return Usuario registrado
+     * @return UsuarioDTO registrado
      */
-    Usuario registrarUsuario(RegisterRequestDTO registerRequest);
+    UsuarioDTO registrarUsuario(RegisterRequestDTO registerRequest);
 }

@@ -15,6 +15,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Configuración de seguridad de Spring Security.
@@ -39,6 +45,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // ✅ AGREGAR ESTA LÍNEA: Habilitar CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
                 // Deshabilitar CSRF (no necesario para API REST con JWT)
                 .csrf(csrf -> csrf.disable())
 
@@ -57,6 +66,9 @@ public class SecurityConfig {
                         // Endpoints públicos (sin autenticación)
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+
+                        // ✅ AGREGAR ESTA LÍNEA: Permitir preflight requests (OPTIONS)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Swagger/OpenAPI (si está configurado)
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -86,6 +98,58 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * ✅ AGREGAR ESTE MÉTODO: Configuración CORS para permitir requests desde el frontend
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // Orígenes permitidos (tu frontend)
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3000"
+        ));
+
+        // Métodos HTTP permitidos
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
+
+        // Headers permitidos
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers",
+                "X-Auth-Token"
+        ));
+
+        // Headers expuestos en la respuesta
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-Total-Count",
+                "Content-Disposition"
+        ));
+
+        // Permitir credenciales (necesario para tokens)
+        configuration.setAllowCredentials(true);
+
+        // Tiempo de cache para preflight requests (1 hora)
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // Aplicar a todas las rutas de la API
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
     }
 
     /**

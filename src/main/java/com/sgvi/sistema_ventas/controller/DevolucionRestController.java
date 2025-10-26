@@ -78,7 +78,7 @@ public class DevolucionRestController {
 
         // Obtener entidades
         Venta venta = ventaService.obtenerPorId(request.getIdVenta());
-        Usuario usuario = usuarioService.obtenerPorId(request.getIdUsuario());
+        Usuario usuario = usuarioService.obtenerEntidadPorId(request.getIdUsuario());
 
         // Construir entidad Devolucion
         Devolucion devolucion = Devolucion.builder()
