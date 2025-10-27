@@ -1,5 +1,6 @@
 package com.sgvi.sistema_ventas.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sgvi.sistema_ventas.model.enums.Genero;
 import lombok.*;
 import jakarta.persistence.*;
@@ -105,10 +106,12 @@ public class Producto {
     /** Relación ManyToOne con Categoria. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idcategoria", insertable = false, updatable = false)
+    @JsonIgnore
     private Categoria categoria;
 
     /** Relación ManyToOne con Proveedor. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idproveedor", insertable = false, updatable = false)
+    @JsonIgnore
     private Proveedor proveedor;
 }

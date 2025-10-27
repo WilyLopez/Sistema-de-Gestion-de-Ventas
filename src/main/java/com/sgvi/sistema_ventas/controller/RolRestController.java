@@ -1,7 +1,11 @@
 package com.sgvi.sistema_ventas.controller;
 
+import com.sgvi.sistema_ventas.model.dto.rol.RolMapper;
 import com.sgvi.sistema_ventas.model.dto.auth.MessageResponse;
+import com.sgvi.sistema_ventas.model.dto.rol.PermisoDTO;
 import com.sgvi.sistema_ventas.model.dto.rol.AsignarPermisosRequest;
+import com.sgvi.sistema_ventas.model.dto.rol.RolConPermisosDTO;
+import com.sgvi.sistema_ventas.model.dto.rol.RolDTO;
 import com.sgvi.sistema_ventas.model.entity.Permiso;
 import com.sgvi.sistema_ventas.model.entity.Rol;
 import com.sgvi.sistema_ventas.service.interfaces.IRolService;
@@ -25,16 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-/**
- * Controlador REST para gestión de roles y permisos.
- * Implementa requisito RF-002 del SRS: Gestión de Roles y Permisos.
- * Solo accesible por usuarios con rol ADMINISTRADOR.
- *
- * @author Wilian Lopez
- * @version 1.0
- * @since 2024
- */
 @RestController
 @RequestMapping("/api/roles")
 @RequiredArgsConstructor
@@ -44,35 +40,10 @@ import java.util.Set;
 public class RolRestController {
 
     private final IRolService rolService;
+    private final RolMapper rolMapper;  // ⚠️ AGREGAR ESTA INYECCIÓN
 
-    /**
-     * RF-002: Crear nuevo rol en el sistema.
-     * Valida nombre único y nivel de acceso válido.
-     *
-     * @param rol Datos del rol
-     * @return Rol creado
-     */
     @PostMapping
-    @Operation(
-            summary = "Crear rol",
-            description = "Crea un nuevo rol en el sistema. Valida nombre único y nivel de acceso (1-10)"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Rol creado exitosamente",
-                    content = @Content(schema = @Schema(implementation = Rol.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Datos inválidos o nombre duplicado",
-                    content = @Content(schema = @Schema(implementation = MessageResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Sin permisos (solo administrador)"
-            )
-    })
+    @Operation(summary = "Crear rol")
     public ResponseEntity<?> crear(@Valid @RequestBody Rol rol) {
         try {
             log.info("POST /api/roles - Crear rol: {}", rol.getNombre());
@@ -92,12 +63,13 @@ public class RolRestController {
             }
 
             Rol rolCreado = rolService.crear(rol);
+            RolDTO rolDTO = rolMapper.toDTO(rolCreado);  // ⚠️ CONVERTIR A DTO
 
             log.info("Rol creado exitosamente: {} - ID: {}", rolCreado.getNombre(), rolCreado.getIdRol());
 
             return ResponseEntity
                     .status(HttpStatus.CREATED)
-                    .body(rolCreado);
+                    .body(rolDTO);  // ⚠️ DEVOLVER DTO
 
         } catch (IllegalArgumentException e) {
             log.warn("Datos inválidos al crear rol: {}", e.getMessage());
@@ -113,37 +85,8 @@ public class RolRestController {
         }
     }
 
-    /**
-     * RF-002: Actualizar rol existente.
-     * No permite modificar roles del sistema (administrador, vendedor, empleado).
-     *
-     * @param id ID del rol
-     * @param rol Datos actualizados
-     * @return Rol actualizado
-     */
     @PutMapping("/{id}")
-    @Operation(
-            summary = "Actualizar rol",
-            description = "Actualiza datos de un rol existente. No permite modificar roles del sistema"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Rol actualizado exitosamente"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Datos inválidos, nombre duplicado o rol del sistema"
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Sin permisos"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Rol no encontrado"
-            )
-    })
+    @Operation(summary = "Actualizar rol")
     public ResponseEntity<?> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody Rol rol) {
@@ -180,10 +123,11 @@ public class RolRestController {
             }
 
             Rol rolActualizado = rolService.actualizar(id, rol);
+            RolDTO rolDTO = rolMapper.toDTO(rolActualizado);  // ⚠️ CONVERTIR A DTO
 
             log.info("Rol actualizado exitosamente: {}", id);
 
-            return ResponseEntity.ok(rolActualizado);
+            return ResponseEntity.ok(rolDTO);  // ⚠️ DEVOLVER DTO
 
         } catch (IllegalArgumentException e) {
             log.warn("Datos inválidos al actualizar rol {}: {}", id, e.getMessage());
@@ -199,37 +143,8 @@ public class RolRestController {
         }
     }
 
-    /**
-     * RF-002: Eliminar rol (soft delete).
-     * No permite eliminar roles del sistema ni roles con usuarios asignados.
-     *
-     * @param id ID del rol
-     * @return Respuesta sin contenido
-     */
+    // ⚠️ MÉTODO SIN CAMBIOS
     @DeleteMapping("/{id}")
-    @Operation(
-            summary = "Eliminar rol",
-            description = "Desactiva un rol (soft delete). No permite eliminar roles del sistema"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "204",
-                    description = "Rol eliminado exitosamente"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "No se puede eliminar rol del sistema",
-                    content = @Content(schema = @Schema(implementation = MessageResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Sin permisos"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Rol no encontrado"
-            )
-    })
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         try {
             log.info("DELETE /api/roles/{} - Eliminar rol", id);
@@ -260,32 +175,14 @@ public class RolRestController {
         }
     }
 
-    /**
-     * RF-002: Obtener rol por ID con sus permisos.
-     *
-     * @param id ID del rol
-     * @return Rol encontrado
-     */
     @GetMapping("/{id}")
-    @Operation(
-            summary = "Obtener rol por ID",
-            description = "Obtiene los datos completos de un rol incluyendo sus permisos"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Rol encontrado"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Rol no encontrado"
-            )
-    })
+    @Operation(summary = "Obtener rol por ID")
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
         try {
             log.info("GET /api/roles/{} - Obtener rol", id);
-            Rol rol = rolService.obtenerPorId(id);
-            return ResponseEntity.ok(rol);
+            Rol rol = rolService.obtenerPorIdConPermisos(id);  // ⚠️ USAR MÉTODO CON PERMISOS
+            RolConPermisosDTO rolDTO = rolMapper.toDTOConPermisos(rol);  // ⚠️ CONVERTIR A DTO CON PERMISOS
+            return ResponseEntity.ok(rolDTO);
 
         } catch (Exception e) {
             log.error("Error al obtener rol {}: {}", id, e.getMessage());
@@ -295,32 +192,14 @@ public class RolRestController {
         }
     }
 
-    /**
-     * RF-002: Obtener rol por nombre.
-     *
-     * @param nombre Nombre del rol
-     * @return Rol encontrado
-     */
     @GetMapping("/nombre/{nombre}")
-    @Operation(
-            summary = "Buscar por nombre",
-            description = "Obtiene un rol por su nombre único"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Rol encontrado"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Rol no encontrado con ese nombre"
-            )
-    })
+    @Operation(summary = "Buscar por nombre")
     public ResponseEntity<?> obtenerPorNombre(@PathVariable String nombre) {
         try {
             log.info("GET /api/roles/nombre/{} - Buscar rol", nombre);
             Rol rol = rolService.obtenerPorNombre(nombre);
-            return ResponseEntity.ok(rol);
+            RolDTO rolDTO = rolMapper.toDTO(rol);  // ⚠️ CONVERTIR A DTO
+            return ResponseEntity.ok(rolDTO);
 
         } catch (Exception e) {
             log.error("Error al buscar rol por nombre {}: {}", nombre, e.getMessage());
@@ -330,67 +209,28 @@ public class RolRestController {
         }
     }
 
-    /**
-     * RF-002: Listar todos los roles con paginación.
-     *
-     * @param pageable Parámetros de paginación
-     * @return Página de roles
-     */
     @GetMapping
-    @Operation(
-            summary = "Listar roles",
-            description = "Lista todos los roles con paginación. Ejemplo: ?page=0&size=20&sort=nombre,asc"
-    )
-    public ResponseEntity<Page<Rol>> listarTodos(Pageable pageable) {
+    @Operation(summary = "Listar roles")
+    public ResponseEntity<Page<RolDTO>> listarTodos(Pageable pageable) {  // ⚠️ CAMBIAR A RolDTO
         log.info("GET /api/roles - Listar roles (página: {})", pageable.getPageNumber());
         Page<Rol> roles = rolService.listarTodos(pageable);
-        return ResponseEntity.ok(roles);
+        Page<RolDTO> rolesDTO = roles.map(rolMapper::toDTO);  // ⚠️ CONVERTIR A DTO
+        return ResponseEntity.ok(rolesDTO);
     }
 
-    /**
-     * RF-002: Listar solo roles activos.
-     * Útil para selects/dropdowns en formularios.
-     *
-     * @return Lista de roles activos
-     */
     @GetMapping("/activos")
-    @Operation(
-            summary = "Roles activos",
-            description = "Lista solo roles activos ordenados por nombre. Útil para asignación de usuarios"
-    )
-    public ResponseEntity<List<Rol>> listarActivos() {
+    @Operation(summary = "Roles activos")
+    public ResponseEntity<List<RolDTO>> listarActivos() {  // ⚠️ CAMBIAR A RolDTO
         log.info("GET /api/roles/activos - Listar roles activos");
         List<Rol> roles = rolService.listarActivos();
-        return ResponseEntity.ok(roles);
+        List<RolDTO> rolesDTO = roles.stream()  // ⚠️ CONVERTIR A DTO
+                .map(rolMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(rolesDTO);
     }
 
-    /**
-     * RF-002: Asignar permisos a un rol.
-     * Reemplaza todos los permisos actuales con la nueva lista.
-     *
-     * @param id ID del rol
-     * @param request DTO con lista de IDs de permisos
-     * @return Mensaje de confirmación
-     */
+    // ⚠️ RESTO DE MÉTODOS SIN CAMBIOS (asignarPermisos, removerPermiso, etc.)
     @PostMapping("/{id}/permisos")
-    @Operation(
-            summary = "Asignar permisos",
-            description = "Asigna una lista de permisos a un rol. Reemplaza permisos actuales"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Permisos asignados exitosamente"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Lista de permisos vacía o IDs inválidos"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Rol no encontrado"
-            )
-    })
     public ResponseEntity<?> asignarPermisos(
             @PathVariable Long id,
             @Valid @RequestBody AsignarPermisosRequest request) {
@@ -425,28 +265,7 @@ public class RolRestController {
         }
     }
 
-    /**
-     * RF-002: Remover un permiso específico de un rol.
-     *
-     * @param id ID del rol
-     * @param idPermiso ID del permiso a remover
-     * @return Respuesta sin contenido
-     */
     @DeleteMapping("/{id}/permisos/{idPermiso}")
-    @Operation(
-            summary = "Remover permiso",
-            description = "Elimina un permiso específico de un rol"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "204",
-                    description = "Permiso removido exitosamente"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Rol o permiso no encontrado"
-            )
-    })
     public ResponseEntity<?> removerPermiso(
             @PathVariable Long id,
             @PathVariable Long idPermiso) {
@@ -468,32 +287,23 @@ public class RolRestController {
         }
     }
 
-    /**
-     * RF-002: Obtener todos los permisos asignados a un rol.
-     *
-     * @param id ID del rol
-     * @return Set de permisos del rol
-     */
     @GetMapping("/{id}/permisos")
-    @Operation(
-            summary = "Obtener permisos de rol",
-            description = "Lista todos los permisos asignados a un rol específico"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Lista de permisos obtenida"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Rol no encontrado"
-            )
-    })
     public ResponseEntity<?> obtenerPermisos(@PathVariable Long id) {
         try {
             log.info("GET /api/roles/{}/permisos - Obtener permisos del rol", id);
             Set<Permiso> permisos = rolService.obtenerPermisos(id);
-            return ResponseEntity.ok(permisos);
+
+            // Convertir a DTO para evitar LazyInitializationException
+            Set<PermisoDTO> permisosDTO = permisos.stream()
+                    .map(p -> PermisoDTO.builder()
+                            .idPermiso(p.getIdPermiso())
+                            .nombre(p.getNombre())
+                            .descripcion(p.getDescripcion())
+                            .categoria(p.getModulo())
+                            .build())
+                    .collect(Collectors.toSet());
+
+            return ResponseEntity.ok(permisosDTO);
 
         } catch (Exception e) {
             log.error("Error al obtener permisos del rol {}: {}", id, e.getMessage());
@@ -503,28 +313,7 @@ public class RolRestController {
         }
     }
 
-    /**
-     * RF-002: Verificar si un rol tiene un permiso específico.
-     *
-     * @param id ID del rol
-     * @param nombrePermiso Nombre del permiso a verificar
-     * @return Objeto con booleano indicando si tiene el permiso
-     */
     @GetMapping("/{id}/tiene-permiso/{nombrePermiso}")
-    @Operation(
-            summary = "Verificar permiso",
-            description = "Verifica si un rol tiene un permiso específico"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Verificación completada"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Rol no encontrado"
-            )
-    })
     public ResponseEntity<?> tienePermiso(
             @PathVariable Long id,
             @PathVariable String nombrePermiso) {
@@ -549,34 +338,14 @@ public class RolRestController {
         }
     }
 
-    /**
-     * Verificar si un nombre de rol ya existe.
-     * Útil para validación en tiempo real en formularios.
-     *
-     * @param nombre Nombre a verificar
-     * @return Objeto con booleano indicando si existe
-     */
     @GetMapping("/existe-nombre")
-    @Operation(
-            summary = "Verificar nombre existente",
-            description = "Verifica si un nombre de rol ya está registrado"
-    )
     public ResponseEntity<Map<String, Boolean>> existeNombre(@RequestParam String nombre) {
         log.info("GET /api/roles/existe-nombre?nombre={}", nombre);
         boolean existe = rolService.existePorNombre(nombre);
         return ResponseEntity.ok(Map.of("existe", existe));
     }
 
-    /**
-     * Obtener estadísticas de roles.
-     *
-     * @return Estadísticas (total, activos, inactivos)
-     */
     @GetMapping("/estadisticas")
-    @Operation(
-            summary = "Estadísticas de roles",
-            description = "Obtiene estadísticas generales de roles en el sistema"
-    )
     public ResponseEntity<Map<String, Object>> obtenerEstadisticas() {
         log.info("GET /api/roles/estadisticas");
 

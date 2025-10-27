@@ -23,21 +23,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de usuarios.
- * Implementa requisito RF-003 del SRS: Gestión de Usuarios.
- * Solo accesible por usuarios con rol ADMINISTRADOR.
- *
- * @author Wilian Lopez
- * @version 1.0
- * @since 2024
- */
 @RestController
 @RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
@@ -69,9 +61,20 @@ public class UsuarioRestController {
                     description = "Sin permisos (solo administrador)"
             )
     })
-    public ResponseEntity<?> crear(@Valid @RequestBody UsuarioCreateDTO createDTO) {
+    public ResponseEntity<?> crear(@Valid @RequestBody UsuarioCreateDTO createDTO, BindingResult result) {
         try {
             log.info("POST /api/usuarios - Crear usuario: {}", createDTO.getUsername());
+
+            if (result.hasErrors()) {
+                Map<String, String> errors = new HashMap<>();
+                result.getFieldErrors().forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+                log.warn("Errores de validación al crear usuario: {}", errors);
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse("Los datos enviados no son válidos"));
+            }
 
             if (usuarioService.existeUsername(createDTO.getUsername())) {
                 log.warn("Intento de crear usuario con username existente: {}", createDTO.getUsername());
@@ -110,6 +113,82 @@ public class UsuarioRestController {
         }
     }
 
+    @GetMapping("/correo/{correo}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(
+            summary = "Verificar existencia de correo",
+            description = "Verifica si un correo ya está registrado"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Correo encontrado",
+                    content = @Content(schema = @Schema(implementation = MessageResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Correo no encontrado"
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Sin permisos"
+            )
+    })
+    public ResponseEntity<?> verificarCorreo(@PathVariable String correo) {
+        try {
+            log.info("GET /api/usuarios/correo/{}", correo);
+            boolean existe = usuarioService.existeCorreo(correo);
+            if (existe) {
+                return ResponseEntity.ok(new MessageResponse("El correo está registrado: " + correo));
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new MessageResponse("El correo no está registrado: " + correo));
+        } catch (Exception e) {
+            log.error("Error al verificar correo {}: {}", correo, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Error al verificar correo"));
+        }
+    }
+
+    @GetMapping("/username/{username}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(
+            summary = "Verificar existencia de username",
+            description = "Verifica si un nombre de usuario ya está registrado"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Username encontrado",
+                    content = @Content(schema = @Schema(implementation = MessageResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Username no encontrado"
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Sin permisos"
+            )
+    })
+    public ResponseEntity<?> verificarUsername(@PathVariable String username) {
+        try {
+            log.info("GET /api/usuarios/username/{}", username);
+            boolean existe = usuarioService.existeUsername(username);
+            if (existe) {
+                return ResponseEntity.ok(new MessageResponse("El username está registrado: " + username));
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new MessageResponse("El username no está registrado: " + username));
+        } catch (Exception e) {
+            log.error("Error al verificar username {}: {}", username, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Error al verificar username"));
+        }
+    }
+
+    // ... (el resto de los métodos permanecen sin cambios)
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -136,12 +215,21 @@ public class UsuarioRestController {
     })
     public ResponseEntity<?> actualizar(
             @PathVariable Long id,
-            @Valid @RequestBody UsuarioUpdateDTO updateDTO) {
-
+            @Valid @RequestBody UsuarioUpdateDTO updateDTO, BindingResult result) {
         try {
             log.info("PUT /api/usuarios/{} - Actualizar usuario", id);
 
-            // Usar obtenerEntidadPorId para obtener la entidad Usuario
+            if (result.hasErrors()) {
+                Map<String, String> errors = new HashMap<>();
+                result.getFieldErrors().forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+                log.warn("Errores de validación al actualizar usuario: {}", errors);
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse("Los datos enviados no son válidos"));
+            }
+
             Usuario usuarioExistente = usuarioService.obtenerEntidadPorId(id);
 
             if (updateDTO.getCorreo() != null &&
@@ -401,9 +489,20 @@ public class UsuarioRestController {
     })
     public ResponseEntity<?> cambiarContrasena(
             @PathVariable Long id,
-            @Valid @RequestBody CambiarContrasenaRequest request) {
+            @Valid @RequestBody CambiarContrasenaRequest request, BindingResult result) {
         try {
             log.info("PUT /api/usuarios/{}/cambiar-contrasena", id);
+
+            if (result.hasErrors()) {
+                Map<String, String> errors = new HashMap<>();
+                result.getFieldErrors().forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+                log.warn("Errores de validación al cambiar contraseña: {}", errors);
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse("Los datos enviados no son válidos"));
+            }
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String currentUsername = authentication.getName();

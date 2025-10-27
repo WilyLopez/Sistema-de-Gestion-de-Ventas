@@ -1,6 +1,7 @@
 package com.sgvi.sistema_ventas.controller;
 
 import com.sgvi.sistema_ventas.model.dto.auth.MessageResponse;
+import com.sgvi.sistema_ventas.model.dto.producto.CategoriaDTO;
 import com.sgvi.sistema_ventas.model.entity.Categoria;
 import com.sgvi.sistema_ventas.service.interfaces.ICategoriaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -371,4 +372,33 @@ public class CategoriaRestController {
         boolean existe = categoriaService.existeNombre(nombre);
         return ResponseEntity.ok(java.util.Map.of("existe", existe));
     }
+    /**
+     * Listar todas las categorías con cantidad de productos activos
+     */
+    @GetMapping("/con-cantidad")
+    @Operation(
+            summary = "Categorías con cantidad de productos",
+            description = "Lista todas las categorías con la cantidad de productos activos en cada una"
+    )
+    public ResponseEntity<List<CategoriaDTO>> listarConCantidad() {
+        log.info("GET /api/categorias/con-cantidad");
+        List<CategoriaDTO> categorias = categoriaService.listarTodasConCantidad(); // Método en el service
+        return ResponseEntity.ok(categorias);
+    }
+
+    /**
+     * Buscar categorías por nombre con cantidad de productos
+     */
+    @GetMapping("/buscar/con-cantidad")
+    @Operation(
+            summary = "Buscar categorías con cantidad de productos",
+            description = "Busca categorías por nombre incluyendo la cantidad de productos activos"
+    )
+    public ResponseEntity<List<CategoriaDTO>> buscarPorNombreConCantidad(
+            @RequestParam String nombre) {
+        log.info("GET /api/categorias/buscar/con-cantidad?nombre={}", nombre);
+        List<CategoriaDTO> categorias = categoriaService.buscarPorNombreConCantidad(nombre);
+        return ResponseEntity.ok(categorias);
+    }
+
 }

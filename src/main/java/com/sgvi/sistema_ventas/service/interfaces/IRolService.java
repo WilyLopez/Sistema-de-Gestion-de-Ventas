@@ -24,6 +24,7 @@ public interface IRolService {
      */
     Rol crear(Rol rol);
 
+    Rol obtenerPorIdConPermisos(Long id);
     /**
      * RF-002: Actualizar rol existente
      * @param id ID del rol
