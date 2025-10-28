@@ -218,7 +218,7 @@ public class InventarioServiceImpl implements IInventarioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + idUsuario));
     }
 
-    private void validarMovimiento(Inventario movimiento) {
+    public void validarMovimiento(Inventario movimiento) {
         if (movimiento.getProducto() == null) {
             throw new ValidationException("El producto es obligatorio");
         }
