@@ -3,6 +3,7 @@ package com.sgvi.sistema_ventas.controller;
 import com.sgvi.sistema_ventas.model.dto.auth.MessageResponse;
 import com.sgvi.sistema_ventas.model.dto.usuario.CambiarContrasenaRequest;
 import com.sgvi.sistema_ventas.model.dto.usuario.UsuarioCreateDTO;
+import com.sgvi.sistema_ventas.model.dto.usuario.UsuarioDTO;
 import com.sgvi.sistema_ventas.model.dto.usuario.UsuarioUpdateDTO;
 import com.sgvi.sistema_ventas.model.entity.Usuario;
 import com.sgvi.sistema_ventas.service.interfaces.IUsuarioService;
@@ -22,21 +23,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de usuarios.
- * Implementa requisito RF-003 del SRS: Gestión de Usuarios.
- * Solo accesible por usuarios con rol ADMINISTRADOR.
- *
- * @author Wilian Lopez
- * @version 1.0
- * @since 2024
- */
 @RestController
 @RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
@@ -46,13 +39,6 @@ public class UsuarioRestController {
 
     private final IUsuarioService usuarioService;
 
-    /**
-     * RF-003: Crear nuevo usuario en el sistema.
-     * Solo el administrador puede crear usuarios.
-     *
-     * @param createDTO DTO con datos del nuevo usuario
-     * @return Usuario creado
-     */
     @PostMapping
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -63,7 +49,7 @@ public class UsuarioRestController {
             @ApiResponse(
                     responseCode = "201",
                     description = "Usuario creado exitosamente",
-                    content = @Content(schema = @Schema(implementation = Usuario.class))
+                    content = @Content(schema = @Schema(implementation = UsuarioDTO.class))
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -75,9 +61,20 @@ public class UsuarioRestController {
                     description = "Sin permisos (solo administrador)"
             )
     })
-    public ResponseEntity<?> crear(@Valid @RequestBody UsuarioCreateDTO createDTO) {
+    public ResponseEntity<?> crear(@Valid @RequestBody UsuarioCreateDTO createDTO, BindingResult result) {
         try {
             log.info("POST /api/usuarios - Crear usuario: {}", createDTO.getUsername());
+
+            if (result.hasErrors()) {
+                Map<String, String> errors = new HashMap<>();
+                result.getFieldErrors().forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+                log.warn("Errores de validación al crear usuario: {}", errors);
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse("Los datos enviados no son válidos"));
+            }
 
             if (usuarioService.existeUsername(createDTO.getUsername())) {
                 log.warn("Intento de crear usuario con username existente: {}", createDTO.getUsername());
@@ -94,7 +91,7 @@ public class UsuarioRestController {
             }
 
             Usuario usuario = convertirAUsuario(createDTO);
-            Usuario usuarioCreado = usuarioService.crear(usuario);
+            UsuarioDTO usuarioCreado = usuarioService.crear(usuario);
 
             log.info("Usuario creado exitosamente: {} - ID: {}", usuarioCreado.getUsername(), usuarioCreado.getIdUsuario());
 
@@ -116,14 +113,82 @@ public class UsuarioRestController {
         }
     }
 
-    /**
-     * RF-003: Actualizar datos de un usuario existente.
-     * Permite actualización parcial de campos.
-     *
-     * @param id ID del usuario
-     * @param updateDTO DTO con datos a actualizar
-     * @return Usuario actualizado
-     */
+    @GetMapping("/correo/{correo}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(
+            summary = "Verificar existencia de correo",
+            description = "Verifica si un correo ya está registrado"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Correo encontrado",
+                    content = @Content(schema = @Schema(implementation = MessageResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Correo no encontrado"
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Sin permisos"
+            )
+    })
+    public ResponseEntity<?> verificarCorreo(@PathVariable String correo) {
+        try {
+            log.info("GET /api/usuarios/correo/{}", correo);
+            boolean existe = usuarioService.existeCorreo(correo);
+            if (existe) {
+                return ResponseEntity.ok(new MessageResponse("El correo está registrado: " + correo));
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new MessageResponse("El correo no está registrado: " + correo));
+        } catch (Exception e) {
+            log.error("Error al verificar correo {}: {}", correo, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Error al verificar correo"));
+        }
+    }
+
+    @GetMapping("/username/{username}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(
+            summary = "Verificar existencia de username",
+            description = "Verifica si un nombre de usuario ya está registrado"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Username encontrado",
+                    content = @Content(schema = @Schema(implementation = MessageResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Username no encontrado"
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Sin permisos"
+            )
+    })
+    public ResponseEntity<?> verificarUsername(@PathVariable String username) {
+        try {
+            log.info("GET /api/usuarios/username/{}", username);
+            boolean existe = usuarioService.existeUsername(username);
+            if (existe) {
+                return ResponseEntity.ok(new MessageResponse("El username está registrado: " + username));
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new MessageResponse("El username no está registrado: " + username));
+        } catch (Exception e) {
+            log.error("Error al verificar username {}: {}", username, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Error al verificar username"));
+        }
+    }
+
+    // ... (el resto de los métodos permanecen sin cambios)
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -150,12 +215,22 @@ public class UsuarioRestController {
     })
     public ResponseEntity<?> actualizar(
             @PathVariable Long id,
-            @Valid @RequestBody UsuarioUpdateDTO updateDTO) {
-
+            @Valid @RequestBody UsuarioUpdateDTO updateDTO, BindingResult result) {
         try {
             log.info("PUT /api/usuarios/{} - Actualizar usuario", id);
 
-            Usuario usuarioExistente = usuarioService.obtenerPorId(id);
+            if (result.hasErrors()) {
+                Map<String, String> errors = new HashMap<>();
+                result.getFieldErrors().forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+                log.warn("Errores de validación al actualizar usuario: {}", errors);
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse("Los datos enviados no son válidos"));
+            }
+
+            Usuario usuarioExistente = usuarioService.obtenerEntidadPorId(id);
 
             if (updateDTO.getCorreo() != null &&
                     !usuarioExistente.getCorreo().equals(updateDTO.getCorreo()) &&
@@ -169,7 +244,7 @@ public class UsuarioRestController {
 
             aplicarActualizacion(usuarioExistente, updateDTO);
 
-            Usuario usuarioActualizado = usuarioService.actualizar(id, usuarioExistente);
+            UsuarioDTO usuarioActualizado = usuarioService.actualizar(id, usuarioExistente);
 
             log.info("Usuario actualizado exitosamente: {}", id);
 
@@ -189,13 +264,6 @@ public class UsuarioRestController {
         }
     }
 
-    /**
-     * RF-003: Desactivar usuario (soft delete).
-     * Marca el usuario como inactivo sin eliminarlo físicamente.
-     *
-     * @param id ID del usuario
-     * @return Respuesta sin contenido
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -250,12 +318,6 @@ public class UsuarioRestController {
         }
     }
 
-    /**
-     * RF-003: Activar usuario previamente desactivado.
-     *
-     * @param id ID del usuario
-     * @return Respuesta sin contenido
-     */
     @PutMapping("/{id}/activar")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -294,12 +356,6 @@ public class UsuarioRestController {
         }
     }
 
-    /**
-     * RF-003: Obtener usuario por ID.
-     *
-     * @param id ID del usuario
-     * @return Usuario encontrado
-     */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -309,7 +365,8 @@ public class UsuarioRestController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Usuario encontrado"
+                    description = "Usuario encontrado",
+                    content = @Content(schema = @Schema(implementation = UsuarioDTO.class))
             ),
             @ApiResponse(
                     responseCode = "403",
@@ -323,7 +380,7 @@ public class UsuarioRestController {
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
         try {
             log.info("GET /api/usuarios/{}", id);
-            Usuario usuario = usuarioService.obtenerPorId(id);
+            UsuarioDTO usuario = usuarioService.obtenerPorId(id);
             return ResponseEntity.ok(usuario);
 
         } catch (Exception e) {
@@ -334,77 +391,79 @@ public class UsuarioRestController {
         }
     }
 
-    /**
-     * RF-003: Listar todos los usuarios con paginación.
-     *
-     * @param pageable Parámetros de paginación
-     * @return Página de usuarios
-     */
     @GetMapping
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
             summary = "Listar usuarios",
             description = "Lista todos los usuarios con paginación. Ejemplo: ?page=0&size=20&sort=nombre,asc"
     )
-    public ResponseEntity<Page<Usuario>> listarTodos(Pageable pageable) {
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Lista de usuarios obtenida exitosamente",
+                    content = @Content(schema = @Schema(implementation = Page.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Sin permisos"
+            )
+    })
+    public ResponseEntity<Page<UsuarioDTO>> listarTodos(Pageable pageable) {
         log.info("GET /api/usuarios - Listar usuarios (página: {})", pageable.getPageNumber());
-        Page<Usuario> usuarios = usuarioService.listarTodos(pageable);
+        Page<UsuarioDTO> usuarios = usuarioService.listarTodos(pageable);
         return ResponseEntity.ok(usuarios);
     }
 
-    /**
-     * RF-003: Listar usuarios por estado.
-     *
-     * @param estado Estado a filtrar (true=Activo, false=Inactivo)
-     * @param pageable Parámetros de paginación
-     * @return Página de usuarios filtrados
-     */
     @GetMapping("/estado/{estado}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
             summary = "Filtrar por estado",
             description = "Lista usuarios activos o inactivos"
     )
-    public ResponseEntity<Page<Usuario>> listarPorEstado(
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Lista de usuarios filtrada obtenida exitosamente",
+                    content = @Content(schema = @Schema(implementation = Page.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Sin permisos"
+            )
+    })
+    public ResponseEntity<Page<UsuarioDTO>> listarPorEstado(
             @PathVariable Boolean estado,
             Pageable pageable) {
-
         log.info("GET /api/usuarios/estado/{}", estado);
-        Page<Usuario> usuarios = usuarioService.listarPorEstado(estado, pageable);
+        Page<UsuarioDTO> usuarios = usuarioService.listarPorEstado(estado, pageable);
         return ResponseEntity.ok(usuarios);
     }
 
-    /**
-     * RF-003: Buscar usuarios por nombre o apellido.
-     *
-     * @param nombre Texto a buscar
-     * @param pageable Parámetros de paginación
-     * @return Página de usuarios que coinciden
-     */
     @GetMapping("/buscar")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
             summary = "Buscar usuarios",
             description = "Busca usuarios por nombre o apellido"
     )
-    public ResponseEntity<Page<Usuario>> buscarPorNombre(
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Lista de usuarios encontrada exitosamente",
+                    content = @Content(schema = @Schema(implementation = Page.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Sin permisos"
+            )
+    })
+    public ResponseEntity<Page<UsuarioDTO>> buscarPorNombre(
             @RequestParam String nombre,
             Pageable pageable) {
-
         log.info("GET /api/usuarios/buscar?nombre={}", nombre);
-        Page<Usuario> usuarios = usuarioService.buscarPorNombre(nombre, pageable);
+        Page<UsuarioDTO> usuarios = usuarioService.buscarPorNombre(nombre, pageable);
         return ResponseEntity.ok(usuarios);
     }
 
-    /**
-     * RF-001: Cambiar contraseña de usuario.
-     * Verifica contraseña actual antes de cambiar.
-     * Cualquier usuario autenticado puede cambiar su propia contraseña.
-     *
-     * @param id ID del usuario
-     * @param request DTO con contraseñas
-     * @return Mensaje de confirmación
-     */
     @PutMapping("/{id}/cambiar-contrasena")
     @Operation(
             summary = "Cambiar contraseña",
@@ -430,10 +489,20 @@ public class UsuarioRestController {
     })
     public ResponseEntity<?> cambiarContrasena(
             @PathVariable Long id,
-            @Valid @RequestBody CambiarContrasenaRequest request) {
-
+            @Valid @RequestBody CambiarContrasenaRequest request, BindingResult result) {
         try {
             log.info("PUT /api/usuarios/{}/cambiar-contrasena", id);
+
+            if (result.hasErrors()) {
+                Map<String, String> errors = new HashMap<>();
+                result.getFieldErrors().forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+                log.warn("Errores de validación al cambiar contraseña: {}", errors);
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse("Los datos enviados no son válidos"));
+            }
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String currentUsername = authentication.getName();
@@ -479,12 +548,6 @@ public class UsuarioRestController {
         }
     }
 
-    /**
-     * Obtener perfil del usuario actual autenticado.
-     * Cualquier usuario autenticado puede consultar su propio perfil.
-     *
-     * @return Usuario actual
-     */
     @GetMapping("/perfil")
     @Operation(
             summary = "Obtener perfil actual",
@@ -493,7 +556,8 @@ public class UsuarioRestController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Perfil obtenido exitosamente"
+                    description = "Perfil obtenido exitosamente",
+                    content = @Content(schema = @Schema(implementation = UsuarioDTO.class))
             ),
             @ApiResponse(
                     responseCode = "401",
@@ -512,7 +576,7 @@ public class UsuarioRestController {
 
             usuarioService.registrarLogin(usuario.getIdUsuario(), LocalDateTime.now());
 
-            return ResponseEntity.ok(usuario);
+            return ResponseEntity.ok(convertToDTO(usuario));
 
         } catch (Exception e) {
             log.error("Error al obtener perfil: {}", e.getMessage());
@@ -522,12 +586,6 @@ public class UsuarioRestController {
         }
     }
 
-    /**
-     * Obtener estadísticas de usuarios.
-     * Solo administrador.
-     *
-     * @return Estadísticas (total, activos, inactivos, por rol)
-     */
     @GetMapping("/estadisticas")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -537,9 +595,9 @@ public class UsuarioRestController {
     public ResponseEntity<Map<String, Object>> obtenerEstadisticas() {
         log.info("GET /api/usuarios/estadisticas");
 
-        Page<Usuario> todosUsuarios = usuarioService.listarTodos(Pageable.unpaged());
-        Page<Usuario> activos = usuarioService.listarPorEstado(true, Pageable.unpaged());
-        Page<Usuario> inactivos = usuarioService.listarPorEstado(false, Pageable.unpaged());
+        Page<UsuarioDTO> todosUsuarios = usuarioService.listarTodos(Pageable.unpaged());
+        Page<UsuarioDTO> activos = usuarioService.listarPorEstado(true, Pageable.unpaged());
+        Page<UsuarioDTO> inactivos = usuarioService.listarPorEstado(false, Pageable.unpaged());
 
         Map<String, Object> estadisticas = new HashMap<>();
         estadisticas.put("totalUsuarios", todosUsuarios.getTotalElements());
@@ -549,32 +607,20 @@ public class UsuarioRestController {
         return ResponseEntity.ok(estadisticas);
     }
 
-    /**
-     * Convierte UsuarioCreateDTO a entidad Usuario.
-     *
-     * @param createDTO DTO de creación
-     * @return Entidad Usuario
-     */
     private Usuario convertirAUsuario(UsuarioCreateDTO createDTO) {
-        Usuario usuario = new Usuario();
-        usuario.setUsername(createDTO.getUsername());
-        usuario.setNombre(createDTO.getNombre());
-        usuario.setApellido(createDTO.getApellido());
-        usuario.setCorreo(createDTO.getCorreo());
-        usuario.setContrasena(createDTO.getContrasena());
-        usuario.setTelefono(createDTO.getTelefono());
-        usuario.setDireccion(createDTO.getDireccion());
-        usuario.setIdRol(createDTO.getIdRol());
-        usuario.setEstado(createDTO.getEstado() != null ? createDTO.getEstado() : true);
-        return usuario;
+        return Usuario.builder()
+                .username(createDTO.getUsername())
+                .nombre(createDTO.getNombre())
+                .apellido(createDTO.getApellido())
+                .correo(createDTO.getCorreo())
+                .contrasena(createDTO.getContrasena())
+                .telefono(createDTO.getTelefono())
+                .direccion(createDTO.getDireccion())
+                .idRol(createDTO.getIdRol())
+                .estado(createDTO.getEstado() != null ? createDTO.getEstado() : true)
+                .build();
     }
 
-    /**
-     * Aplica actualización parcial de UsuarioUpdateDTO a entidad Usuario.
-     *
-     * @param usuario Usuario existente
-     * @param updateDTO DTO con campos a actualizar
-     */
     private void aplicarActualizacion(Usuario usuario, UsuarioUpdateDTO updateDTO) {
         if (updateDTO.getNombre() != null) {
             usuario.setNombre(updateDTO.getNombre());
@@ -597,5 +643,22 @@ public class UsuarioRestController {
         if (updateDTO.getEstado() != null) {
             usuario.setEstado(updateDTO.getEstado());
         }
+    }
+
+    private UsuarioDTO convertToDTO(Usuario usuario) {
+        return UsuarioDTO.builder()
+                .idUsuario(usuario.getIdUsuario())
+                .username(usuario.getUsername())
+                .nombre(usuario.getNombre())
+                .apellido(usuario.getApellido())
+                .correo(usuario.getCorreo())
+                .telefono(usuario.getTelefono())
+                .direccion(usuario.getDireccion())
+                .estado(usuario.getEstado())
+                .idRol(usuario.getIdRol())
+                .nombreRol(usuario.getRol() != null ? usuario.getRol().getNombre() : null)
+                .fechaCreacion(usuario.getFechaCreacion())
+                .ultimoLogin(usuario.getUltimoLogin())
+                .build();
     }
 }

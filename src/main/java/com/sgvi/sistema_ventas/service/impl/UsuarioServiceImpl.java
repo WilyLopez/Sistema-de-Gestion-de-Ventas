@@ -5,6 +5,7 @@ import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.exception.UnauthorizedException;
 import com.sgvi.sistema_ventas.exception.ValidationException;
 import com.sgvi.sistema_ventas.model.dto.auth.RegisterRequestDTO;
+import com.sgvi.sistema_ventas.model.dto.usuario.UsuarioDTO;
 import com.sgvi.sistema_ventas.model.entity.Usuario;
 import com.sgvi.sistema_ventas.repository.UsuarioRepository;
 import com.sgvi.sistema_ventas.service.interfaces.IUsuarioService;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Implementación del servicio de gestión de usuarios.
@@ -43,23 +45,13 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
     private static final int LONGITUD_MINIMA_CONTRASENA = 6;
 
-    /**
-     * Crea un nuevo usuario en el sistema.
-     * Valida username, correo y contraseña, luego encripta la contraseña.
-     *
-     * @param usuario Datos del usuario a crear
-     * @return Usuario creado con ID asignado
-     * @throws ValidationException Si los datos del usuario no son válidos
-     * @throws DuplicateResourceException Si el username o correo ya existen
-     */
     @Override
-    public Usuario crear(Usuario usuario) {
+    public UsuarioDTO crear(Usuario usuario) {
         log.info("Creando usuario: {}", usuario.getUsername());
 
         validarUsuarioNuevo(usuario);
 
         usuario.setContrasena(encriptarContrasena(usuario.getContrasena()));
-
         usuario.setEstado(true);
         usuario.setFechaCreacion(LocalDateTime.now());
         usuario.setFechaActualizacion(LocalDateTime.now());
@@ -67,24 +59,14 @@ public class UsuarioServiceImpl implements IUsuarioService {
         Usuario usuarioCreado = usuarioRepository.save(usuario);
         log.info("Usuario creado exitosamente con ID: {}", usuarioCreado.getIdUsuario());
 
-        return usuarioCreado;
+        return convertToDTO(usuarioCreado);
     }
 
-    /**
-     * Actualiza los datos de un usuario existente.
-     * No permite actualizar la contraseña, usar cambiarContrasena para eso.
-     *
-     * @param id Identificador del usuario
-     * @param usuario Nuevos datos del usuario
-     * @return Usuario actualizado
-     * @throws ResourceNotFoundException Si el usuario no existe
-     * @throws DuplicateResourceException Si el nuevo username o correo ya existen
-     */
     @Override
-    public Usuario actualizar(Long id, Usuario usuario) {
+    public UsuarioDTO actualizar(Long id, Usuario usuario) {
         log.info("Actualizando usuario con ID: {}", id);
 
-        Usuario usuarioExistente = obtenerPorId(id);
+        Usuario usuarioExistente = obtenerEntidadPorId(id);
 
         if (!usuarioExistente.getUsername().equals(usuario.getUsername())
                 && existeUsername(usuario.getUsername())) {
@@ -113,21 +95,14 @@ public class UsuarioServiceImpl implements IUsuarioService {
         Usuario usuarioActualizado = usuarioRepository.save(usuarioExistente);
         log.info("Usuario actualizado exitosamente: {}", id);
 
-        return usuarioActualizado;
+        return convertToDTO(usuarioActualizado);
     }
 
-    /**
-     * Desactiva un usuario del sistema.
-     * El usuario no podrá autenticarse pero sus datos se conservan.
-     *
-     * @param id Identificador del usuario a desactivar
-     * @throws ResourceNotFoundException Si el usuario no existe
-     */
     @Override
     public void desactivar(Long id) {
         log.info("Desactivando usuario con ID: {}", id);
 
-        Usuario usuario = obtenerPorId(id);
+        Usuario usuario = obtenerEntidadPorId(id);
         usuario.setEstado(false);
         usuario.setFechaActualizacion(LocalDateTime.now());
 
@@ -135,17 +110,11 @@ public class UsuarioServiceImpl implements IUsuarioService {
         log.info("Usuario desactivado exitosamente: {}", id);
     }
 
-    /**
-     * Reactiva un usuario previamente desactivado.
-     *
-     * @param id Identificador del usuario a activar
-     * @throws ResourceNotFoundException Si el usuario no existe
-     */
     @Override
     public void activar(Long id) {
         log.info("Activando usuario con ID: {}", id);
 
-        Usuario usuario = obtenerPorId(id);
+        Usuario usuario = obtenerEntidadPorId(id);
         usuario.setEstado(true);
         usuario.setFechaActualizacion(LocalDateTime.now());
 
@@ -153,88 +122,56 @@ public class UsuarioServiceImpl implements IUsuarioService {
         log.info("Usuario activado exitosamente: {}", id);
     }
 
-    /**
-     * Obtiene un usuario por su identificador.
-     *
-     * @param id Identificador del usuario
-     * @return Usuario encontrado
-     * @throws ResourceNotFoundException Si el usuario no existe
-     */
     @Override
     @Transactional(readOnly = true)
-    public Usuario obtenerPorId(Long id) {
+    public Usuario obtenerEntidadPorId(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Constants.MSG_RECURSO_NO_ENCONTRADO + " con ID: " + id));
     }
 
-    /**
-     * Obtiene un usuario por su username.
-     *
-     * @param username Username del usuario
-     * @return Optional con el usuario si existe
-     */
+    @Override
+    @Transactional(readOnly = true)
+    public UsuarioDTO obtenerPorId(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Constants.MSG_RECURSO_NO_ENCONTRADO + " con ID: " + id));
+        return convertToDTO(usuario);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Optional<Usuario> obtenerPorUsername(String username) {
         return usuarioRepository.findByUsername(username);
     }
 
-    /**
-     * Lista todos los usuarios con paginación.
-     *
-     * @param pageable Configuración de paginación
-     * @return Página de usuarios
-     */
     @Override
     @Transactional(readOnly = true)
-    public Page<Usuario> listarTodos(Pageable pageable) {
-        return usuarioRepository.findAll(pageable);
+    public Page<UsuarioDTO> listarTodos(Pageable pageable) {
+        Page<Usuario> usuarios = usuarioRepository.findAll(pageable);
+        return usuarios.map(this::convertToDTO);
     }
 
-    /**
-     * Lista usuarios filtrados por estado con paginación.
-     *
-     * @param estado Estado del usuario (activo/inactivo)
-     * @param pageable Configuración de paginación
-     * @return Página de usuarios con el estado especificado
-     */
     @Override
     @Transactional(readOnly = true)
-    public Page<Usuario> listarPorEstado(Boolean estado, Pageable pageable) {
-        List<Usuario> usuarios = usuarioRepository.findByEstado(estado)
-                .stream()
-                .toList();
-
-        return new PageImpl<>(usuarios, pageable, usuarios.size());
+    public Page<UsuarioDTO> listarPorEstado(Boolean estado, Pageable pageable) {
+        List<Usuario> usuarios = usuarioRepository.findByEstado(estado);
+        List<UsuarioDTO> usuariosDTO = usuarios.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        return new PageImpl<>(usuariosDTO, pageable, usuarios.size());
     }
 
-    /**
-     * Busca usuarios por nombre o apellido con paginación.
-     *
-     * @param nombre Texto a buscar en nombre o apellido
-     * @param pageable Configuración de paginación
-     * @return Página de usuarios que coinciden con la búsqueda
-     */
     @Override
     @Transactional(readOnly = true)
-    public Page<Usuario> buscarPorNombre(String nombre, Pageable pageable) {
-        List<Usuario> usuarios = usuarioRepository.findByNombreOrApellidoContainingIgnoreCase(nombre)
-                .stream()
-                .toList();
-
-        return new PageImpl<>(usuarios, pageable, usuarios.size());
+    public Page<UsuarioDTO> buscarPorNombre(String nombre, Pageable pageable) {
+        List<Usuario> usuarios = usuarioRepository.findByNombreOrApellidoContainingIgnoreCase(nombre);
+        List<UsuarioDTO> usuariosDTO = usuarios.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        return new PageImpl<>(usuariosDTO, pageable, usuarios.size());
     }
 
-    /**
-     * Autentica un usuario validando sus credenciales.
-     * Verifica que el usuario exista, esté activo y la contraseña sea correcta.
-     *
-     * @param username Username del usuario
-     * @param contrasena Contraseña sin encriptar
-     * @return Usuario autenticado
-     * @throws UnauthorizedException Si las credenciales son inválidas o el usuario está inactivo
-     */
     @Override
     @Transactional(readOnly = true)
     public Usuario autenticar(String username, String contrasena) {
@@ -255,22 +192,11 @@ public class UsuarioServiceImpl implements IUsuarioService {
         return usuario;
     }
 
-    /**
-     * Cambia la contraseña de un usuario.
-     * Valida la contraseña actual antes de establecer la nueva.
-     *
-     * @param id ID del usuario
-     * @param contrasenaActual Contraseña actual sin encriptar
-     * @param contrasenaNueva Nueva contraseña sin encriptar
-     * @throws ResourceNotFoundException Si el usuario no existe
-     * @throws UnauthorizedException Si la contraseña actual es incorrecta
-     * @throws ValidationException Si la nueva contraseña no cumple los requisitos
-     */
     @Override
     public void cambiarContrasena(Long id, String contrasenaActual, String contrasenaNueva) {
         log.info("Cambiando contraseña para usuario ID: {}", id);
 
-        Usuario usuario = obtenerPorId(id);
+        Usuario usuario = obtenerEntidadPorId(id);
 
         if (!passwordEncoder.matches(contrasenaActual, usuario.getContrasena())) {
             throw new UnauthorizedException("Contraseña actual incorrecta");
@@ -285,49 +211,24 @@ public class UsuarioServiceImpl implements IUsuarioService {
         log.info("Contraseña cambiada exitosamente para usuario: {}", id);
     }
 
-    /**
-     * Registra la fecha y hora del último login de un usuario.
-     *
-     * @param id ID del usuario
-     * @param fechaLogin Fecha y hora del login
-     * @throws ResourceNotFoundException Si el usuario no existe
-     */
     @Override
     public void registrarLogin(Long id, LocalDateTime fechaLogin) {
-        Usuario usuario = obtenerPorId(id);
+        Usuario usuario = obtenerEntidadPorId(id);
         usuario.setUltimoLogin(fechaLogin);
         usuarioRepository.save(usuario);
     }
 
-    /**
-     * Encripta una contraseña usando BCrypt.
-     *
-     * @param contrasena Contraseña en texto plano
-     * @return Contraseña encriptada
-     */
     @Override
     public String encriptarContrasena(String contrasena) {
         return passwordEncoder.encode(contrasena);
     }
 
-    /**
-     * Verifica si ya existe un usuario con el username especificado.
-     *
-     * @param username Username a verificar
-     * @return true si el username ya existe
-     */
     @Override
     @Transactional(readOnly = true)
     public boolean existeUsername(String username) {
         return usuarioRepository.existsByUsername(username);
     }
 
-    /**
-     * Verifica si ya existe un usuario con el correo especificado.
-     *
-     * @param correo Correo electrónico a verificar
-     * @return true si el correo ya existe
-     */
     @Override
     @Transactional(readOnly = true)
     public boolean existeCorreo(String correo) {
@@ -335,7 +236,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     @Override
-    public Usuario registrarUsuario(RegisterRequestDTO registerRequest) {
+    public UsuarioDTO registrarUsuario(RegisterRequestDTO registerRequest) {
         Usuario usuario = Usuario.builder()
                 .username(registerRequest.getUsername())
                 .nombre(registerRequest.getNombre())
@@ -350,13 +251,6 @@ public class UsuarioServiceImpl implements IUsuarioService {
         return crear(usuario);
     }
 
-    /**
-     * Valida todos los datos de un usuario nuevo antes de crearlo.
-     *
-     * @param usuario Datos del usuario a validar
-     * @throws ValidationException Si algún dato no es válido
-     * @throws DuplicateResourceException Si el username o correo ya existen
-     */
     private void validarUsuarioNuevo(Usuario usuario) {
         if (usuario.getUsername() == null || usuario.getUsername().trim().isEmpty()) {
             throw new ValidationException("El username es obligatorio");
@@ -381,17 +275,27 @@ public class UsuarioServiceImpl implements IUsuarioService {
         validarContrasena(usuario.getContrasena());
     }
 
-    /**
-     * Valida que una contraseña cumpla con los requisitos mínimos.
-     * La contraseña debe tener al menos 6 caracteres.
-     *
-     * @param contrasena Contraseña a validar
-     * @throws ValidationException Si la contraseña no cumple los requisitos
-     */
     private void validarContrasena(String contrasena) {
         if (contrasena == null || contrasena.length() < LONGITUD_MINIMA_CONTRASENA) {
             throw new ValidationException(
                     "La contraseña debe tener al menos " + LONGITUD_MINIMA_CONTRASENA + " caracteres");
         }
+    }
+
+    private UsuarioDTO convertToDTO(Usuario usuario) {
+        return UsuarioDTO.builder()
+                .idUsuario(usuario.getIdUsuario())
+                .username(usuario.getUsername())
+                .nombre(usuario.getNombre())
+                .apellido(usuario.getApellido())
+                .correo(usuario.getCorreo())
+                .telefono(usuario.getTelefono())
+                .direccion(usuario.getDireccion())
+                .estado(usuario.getEstado())
+                .idRol(usuario.getIdRol())
+                .nombreRol(usuario.getRol() != null ? usuario.getRol().getNombre() : null)
+                .fechaCreacion(usuario.getFechaCreacion())
+                .ultimoLogin(usuario.getUltimoLogin())
+                .build();
     }
 }

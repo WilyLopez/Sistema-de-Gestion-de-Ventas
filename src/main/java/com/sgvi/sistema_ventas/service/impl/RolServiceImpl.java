@@ -56,6 +56,17 @@ public class RolServiceImpl implements IRolService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Rol obtenerPorIdConPermisos(Long id) {
+        Rol rol = obtenerPorId(id);
+        // Forzar la carga de permisos mientras la transacción está activa
+        if (rol.getPermisos() != null) {
+            rol.getPermisos().size(); // Esto inicializa la colección lazy
+        }
+        return rol;
+    }
+
+    @Override
     public Rol actualizar(Long id, Rol rol) {
         log.info("Actualizando rol con ID: {}", id);
 

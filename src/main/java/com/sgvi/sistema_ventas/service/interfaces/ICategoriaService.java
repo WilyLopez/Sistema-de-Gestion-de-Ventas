@@ -1,5 +1,6 @@
 package com.sgvi.sistema_ventas.service.interfaces;
 
+import com.sgvi.sistema_ventas.model.dto.producto.CategoriaDTO;
 import com.sgvi.sistema_ventas.model.entity.Categoria;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -77,4 +78,7 @@ public interface ICategoriaService {
      * @return true si existe
      */
     boolean existeNombre(String nombre);
+
+    List<CategoriaDTO> listarTodasConCantidad();
+    List<CategoriaDTO> buscarPorNombreConCantidad(String nombre);
 }

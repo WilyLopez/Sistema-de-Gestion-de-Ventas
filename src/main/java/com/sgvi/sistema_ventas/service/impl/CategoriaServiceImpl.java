@@ -3,6 +3,7 @@ package com.sgvi.sistema_ventas.service.impl;
 import com.sgvi.sistema_ventas.exception.BusinessException;
 import com.sgvi.sistema_ventas.exception.DuplicateResourceException;
 import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
+import com.sgvi.sistema_ventas.model.dto.producto.CategoriaDTO;
 import com.sgvi.sistema_ventas.model.entity.Categoria;
 import com.sgvi.sistema_ventas.repository.CategoriaRepository;
 import com.sgvi.sistema_ventas.service.interfaces.ICategoriaService;
@@ -128,6 +129,16 @@ public class CategoriaServiceImpl implements ICategoriaService {
         return categoriaRepository.existsByNombre(nombre);
     }
 
+    @Override
+    public List<CategoriaDTO> listarTodasConCantidad() {
+        return categoriaRepository.findAllWithProductCount();
+    }
+
+    @Override
+    public List<CategoriaDTO> buscarPorNombreConCantidad(String nombre) {
+        return categoriaRepository.findByNombreWithProductCount(nombre);
+    }
+
     // ========== MÉTODOS PRIVADOS ==========
 
     private void validarCategoriaNueva(Categoria categoria) {
@@ -139,4 +150,5 @@ public class CategoriaServiceImpl implements ICategoriaService {
             throw new DuplicateResourceException("El nombre de categoría ya existe: " + categoria.getNombre());
         }
     }
+
 }
