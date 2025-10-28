@@ -79,16 +79,12 @@ public class ClienteServiceImpl implements IClienteService {
     public Cliente actualizar(Long id, Cliente cliente) {
         log.info("Actualizando cliente con ID: {}", id);
 
-        Cliente clienteExistente = obtenerPorId(id);
-
-        if (!clienteExistente.getNumeroDocumento().equals(cliente.getNumeroDocumento())
-                && existeDocumento(cliente.getTipoDocumento(), cliente.getNumeroDocumento())) {
-            throw new DuplicateResourceException(Constants.ERR_DUPLICADO);
-        }
+        Cliente clienteExistente = clienteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
 
         if (cliente.getCorreo() != null
                 && !cliente.getCorreo().equals(clienteExistente.getCorreo())
-                && existeCorreo(cliente.getCorreo())) {
+                && clienteRepository.existsByCorreo(cliente.getCorreo())) {
             throw new DuplicateResourceException(Constants.ERR_DUPLICADO);
         }
 
