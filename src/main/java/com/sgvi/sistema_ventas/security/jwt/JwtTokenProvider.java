@@ -35,7 +35,7 @@ public class JwtTokenProvider {
      * @return Token JWT generado
      */
     public String generateToken(Authentication authentication) {
-        String username = authentication.getName();
+        String username = authentication.getName(); // ✅ Esto ahora será el username real
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 

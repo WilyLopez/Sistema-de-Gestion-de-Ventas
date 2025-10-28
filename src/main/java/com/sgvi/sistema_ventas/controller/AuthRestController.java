@@ -85,35 +85,49 @@ public class AuthRestController {
                     content = @Content(schema = @Schema(implementation = MessageResponse.class))
             )
     })
+    /**
+     * RF-001: Autentica usuario y genera token JWT.
+     */
+
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
         try {
-            log.info("Intento de login para usuario: {}", loginRequest.getUsername());
+            log.info("=== INICIO LOGIN ===");
+            log.info("Username recibido en request: {}", loginRequest.getUsername());
 
+            // Autenticar con username y contraseña
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.getUsername(),
+                            loginRequest.getUsername(), // username real
                             loginRequest.getPassword()
                     )
             );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = jwtTokenProvider.generateToken(authentication);
+
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+
+            // LOGS DE DEPURACIÓN
+            log.info("UserPrincipal.getUsername(): {}", userPrincipal.getUsername());
+            log.info("UserPrincipal.getEmail(): {}", userPrincipal.getEmail());
+            log.info("UserPrincipal Nombre: {}", userPrincipal.getNombre());
+            log.info("UserPrincipal Rol: {}", userPrincipal.getNombreRol());
+
+            String jwt = jwtTokenProvider.generateToken(authentication);
+            log.info("Token generado exitosamente");
 
             LoginResponse response = LoginResponse.builder()
                     .token(jwt)
                     .type("Bearer")
                     .id(userPrincipal.getId())
-                    .username(userPrincipal.getUsername())
+                    .username(userPrincipal.getUsername()) // ✅ Ahora será el username real
                     .nombre(userPrincipal.getNombre())
                     .apellido(userPrincipal.getApellido())
                     .email(userPrincipal.getEmail())
                     .rol(userPrincipal.getNombreRol())
                     .build();
 
-            log.info("Login exitoso para usuario: {} - Rol: {}",
-                    loginRequest.getUsername(),
-                    userPrincipal.getNombreRol());
+            log.info("=== LOGIN EXITOSO ===");
+            log.info("Usuario: {} - Rol: {}", userPrincipal.getUsername(), userPrincipal.getNombreRol());
 
             return ResponseEntity.ok(response);
 
