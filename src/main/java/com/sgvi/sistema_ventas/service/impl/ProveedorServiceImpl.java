@@ -38,6 +38,7 @@ public class ProveedorServiceImpl implements IProveedorService {
     private final RucValidator rucValidator;
     private final EmailValidator emailValidator;
 
+
     /**
      * Crea un nuevo proveedor en el sistema.
      * Valida RUC, correo y razón social antes de guardar.
