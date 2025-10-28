@@ -15,7 +15,7 @@ import java.util.Collections;
  * Encapsula los datos del usuario para el sistema de seguridad.
  *
  * @author Wilian Lopez
- * @version 1.0
+ * @version 1.1
  * @since 2024
  */
 @Data
@@ -33,19 +33,19 @@ public class UserPrincipal implements UserDetails {
     private Collection<? extends GrantedAuthority> authorities;
 
     /**
-     * Crea un UserPrincipal a partir de una entidad Usuario
+     * Crea un UserPrincipal a partir de una entidad Usuario.
+     *
      * @param usuario Entidad Usuario
      * @return UserPrincipal configurado
      */
     public static UserPrincipal build(Usuario usuario) {
         // Crear autoridad basada en el rol
-        // Spring Security requiere el prefijo "ROLE_"
         String roleName = "ROLE_" + usuario.getRol().getNombre().toUpperCase();
         SimpleGrantedAuthority authority = new SimpleGrantedAuthority(roleName);
 
         return new UserPrincipal(
                 usuario.getIdUsuario(),
-                usuario.getUsername(),
+                usuario.getCorreo(), // ← aquí usamos el correo como username
                 usuario.getContrasena(),
                 usuario.getNombre(),
                 usuario.getApellido(),
@@ -92,7 +92,8 @@ public class UserPrincipal implements UserDetails {
     }
 
     /**
-     * Obtiene el nombre completo del usuario
+     * Obtiene el nombre completo del usuario.
+     *
      * @return Nombre completo
      */
     public String getNombreCompleto() {
