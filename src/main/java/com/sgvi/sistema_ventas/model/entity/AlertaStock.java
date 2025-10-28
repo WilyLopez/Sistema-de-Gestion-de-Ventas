@@ -1,7 +1,10 @@
 package com.sgvi.sistema_ventas.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sgvi.sistema_ventas.model.enums.NivelUrgencia;
 import com.sgvi.sistema_ventas.model.enums.TipoAlerta;
+import com.sgvi.sistema_ventas.util.converter.NivelUrgenciaConverter;
+import com.sgvi.sistema_ventas.util.converter.TipoAlertaConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -41,22 +44,24 @@ public class AlertaStock {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idproducto", nullable = false)
+    @JsonIgnore
     private Producto producto;
 
     /**
      * Tipo de alerta generada
      * Usa el enum TipoAlerta para los valores permitidos
      */
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = TipoAlertaConverter.class)
     @Column(name = "tipoalerta", nullable = false, length = 30)
     private TipoAlerta tipoAlerta;
+
 
     /**
      * Nivel de urgencia de la alerta
      * Usa el enum NivelUrgencia para los valores permitidos
      */
-    @Enumerated(EnumType.STRING)
     @Column(name = "nivelurgencia", length = 20)
+    @Convert(converter = NivelUrgenciaConverter.class)
     private NivelUrgencia nivelUrgencia;
 
     /**

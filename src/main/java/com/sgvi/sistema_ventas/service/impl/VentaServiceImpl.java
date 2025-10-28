@@ -3,6 +3,8 @@ package com.sgvi.sistema_ventas.service.impl;
 import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.exception.StockInsuficienteException;
 import com.sgvi.sistema_ventas.exception.VentaException;
+import com.sgvi.sistema_ventas.model.dto.venta.VentaBusquedaDTO;
+import com.sgvi.sistema_ventas.model.dto.venta.VentaDTO;
 import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
 import com.sgvi.sistema_ventas.model.entity.Producto;
 import com.sgvi.sistema_ventas.model.entity.Venta;
@@ -19,7 +21,9 @@ import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -132,27 +136,30 @@ public class VentaServiceImpl implements IVentaService {
     /**
      * Busca ventas aplicando múltiples filtros opcionales.
      *
-     * @param codigoVenta Código de la venta
-     * @param idCliente ID del cliente
-     * @param idUsuario ID del vendedor
-     * @param estado Estado de la venta
-     * @param idMetodoPago ID del método de pago
-     * @param fechaInicio Fecha inicial del rango
-     * @param fechaFin Fecha final del rango
-     * @param pageable Configuración de paginación
+
      * @return Página de ventas que coinciden con los filtros
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<Venta> buscarConFiltros(String codigoVenta, Long idCliente, Long idUsuario,
-                                        EstadoVenta estado, Long idMetodoPago,
-                                        LocalDateTime fechaInicio, LocalDateTime fechaFin,
-                                        Pageable pageable) {
-        return ventaRepository.buscarVentasConFiltros(
-                codigoVenta, idCliente, idUsuario, estado, idMetodoPago,
-                fechaInicio, fechaFin, pageable
+    public Page<VentaDTO> buscarVentasDTOConFiltros(VentaBusquedaDTO filtros) {
+        Pageable pageable = PageRequest.of(
+                filtros.getPagina(),
+                filtros.getTamanio(),
+                Sort.by(Sort.Direction.fromString(filtros.getDireccion()), filtros.getOrdenarPor())
+        );
+
+        return ventaRepository.buscarVentasDTOConFiltros(
+                filtros.getCodigoVenta(),
+                filtros.getIdCliente(),
+                filtros.getIdUsuario(),
+                filtros.getEstado(),
+                filtros.getIdMetodoPago(),
+                filtros.getFechaDesde(),
+                filtros.getFechaHasta(),
+                pageable
         );
     }
+
 
     /**
      * Anula una venta si cumple las condiciones establecidas.

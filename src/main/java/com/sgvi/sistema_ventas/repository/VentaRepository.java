@@ -1,5 +1,6 @@
 package com.sgvi.sistema_ventas.repository;
 
+import com.sgvi.sistema_ventas.model.dto.venta.VentaDTO;
 import com.sgvi.sistema_ventas.model.entity.Venta;
 import com.sgvi.sistema_ventas.model.enums.EstadoVenta;
 import org.springframework.data.domain.Page;
@@ -103,16 +104,38 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
      * Búsqueda avanzada de ventas por múltiples filtros opcionales.
      */
     @Query("""
-           SELECT v FROM Venta v
-           WHERE (:codigoVenta IS NULL OR v.codigoVenta LIKE %:codigoVenta%)
-             AND (:idCliente IS NULL OR v.cliente.idCliente = :idCliente)
-             AND (:idUsuario IS NULL OR v.usuario.idUsuario = :idUsuario)
-             AND (:estado IS NULL OR v.estado = :estado)
-             AND (:idMetodoPago IS NULL OR v.metodoPago.idMetodoPago = :idMetodoPago)
-             AND (:fechaInicio IS NULL OR v.fechaCreacion >= :fechaInicio)
-             AND (:fechaFin IS NULL OR v.fechaCreacion <= :fechaFin)
-           """)
-    Page<Venta> buscarVentasConFiltros(
+    SELECT new com.sgvi.sistema_ventas.model.dto.venta.VentaDTO(
+        v.idVenta,
+        v.codigoVenta,
+        c.idCliente,
+        c.nombre,
+        u.idUsuario,
+        u.nombre,
+        v.fechaCreacion,
+        v.subtotal,
+        v.igv,
+        v.total,
+        m.idMetodoPago,
+        m.nombre,
+        v.estado,
+        v.tipoComprobante,
+        v.observaciones,
+        null,
+        null 
+    )
+    FROM Venta v
+    JOIN v.cliente c
+    JOIN v.usuario u
+    JOIN v.metodoPago m
+    WHERE (:codigoVenta IS NULL OR v.codigoVenta LIKE %:codigoVenta%)
+      AND (:idCliente IS NULL OR c.idCliente = :idCliente)
+      AND (:idUsuario IS NULL OR u.idUsuario = :idUsuario)
+      AND (:estado IS NULL OR v.estado = :estado)
+      AND (:idMetodoPago IS NULL OR m.idMetodoPago = :idMetodoPago)
+      AND (:fechaInicio IS NULL OR v.fechaCreacion >= :fechaInicio)
+      AND (:fechaFin IS NULL OR v.fechaCreacion <= :fechaFin)
+""")
+    Page<VentaDTO> buscarVentasDTOConFiltros(
             @Param("codigoVenta") String codigoVenta,
             @Param("idCliente") Long idCliente,
             @Param("idUsuario") Long idUsuario,
@@ -122,6 +145,8 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
             @Param("fechaFin") LocalDateTime fechaFin,
             Pageable pageable
     );
+
+
 
     /**
      * Verifica si una venta puede ser anulada (dentro de las últimas 24 horas y con estado PAGADO).

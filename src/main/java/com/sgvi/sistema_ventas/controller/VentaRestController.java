@@ -230,16 +230,6 @@ public class VentaRestController {
     /**
      * RF-008: Buscar ventas con múltiples filtros.
      * Todos los parámetros son opcionales.
-     *
-     * @param codigoVenta Código de venta
-     * @param idCliente ID del cliente
-     * @param idUsuario ID del usuario/vendedor
-     * @param estado Estado de la venta
-     * @param idMetodoPago ID del método de pago
-     * @param fechaInicio Fecha inicial
-     * @param fechaFin Fecha final
-     * @param pageable Parámetros de paginación
-     * @return Página de ventas filtradas
      */
     @GetMapping("/buscar")
     @Operation(
@@ -252,25 +242,12 @@ public class VentaRestController {
                     description = "Búsqueda exitosa"
             )
     })
-    public ResponseEntity<Page<Venta>> buscarConFiltros(
-            @RequestParam(required = false) String codigoVenta,
-            @RequestParam(required = false) Long idCliente,
-            @RequestParam(required = false) Long idUsuario,
-            @RequestParam(required = false) EstadoVenta estado,
-            @RequestParam(required = false) Long idMetodoPago,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin,
-            Pageable pageable) {
-
-        log.info("GET /api/ventas/buscar - Aplicando filtros");
-
-        Page<Venta> ventas = ventaService.buscarConFiltros(
-                codigoVenta, idCliente, idUsuario, estado, idMetodoPago,
-                fechaInicio, fechaFin, pageable
-        );
-
+    public ResponseEntity<Page<VentaDTO>> buscarVentas(@ModelAttribute VentaBusquedaDTO filtros) {
+        log.info("GET /api/ventas/buscar - Aplicando filtros DTO");
+        Page<VentaDTO> ventas = ventaService.buscarVentasDTOConFiltros(filtros);
         return ResponseEntity.ok(ventas);
     }
+
 
     /**
      * RF-009: Anular una venta.
