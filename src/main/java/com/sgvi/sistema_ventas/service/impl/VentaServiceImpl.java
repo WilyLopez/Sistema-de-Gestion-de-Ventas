@@ -9,6 +9,7 @@ import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
 import com.sgvi.sistema_ventas.model.entity.Producto;
 import com.sgvi.sistema_ventas.model.entity.Venta;
 import com.sgvi.sistema_ventas.model.enums.EstadoVenta;
+import com.sgvi.sistema_ventas.model.enums.TipoComprobante;
 import com.sgvi.sistema_ventas.repository.DetalleVentaRepository;
 import com.sgvi.sistema_ventas.repository.VentaRepository;
 import com.sgvi.sistema_ventas.service.interfaces.IInventarioService;
@@ -148,16 +149,20 @@ public class VentaServiceImpl implements IVentaService {
                 Sort.by(Sort.Direction.fromString(filtros.getDireccion()), filtros.getOrdenarPor())
         );
 
-        return ventaRepository.buscarVentasDTOConFiltros(
+        String estadoStr = filtros.getEstado() != null ? filtros.getEstado().name() : null;
+
+        Page<Object[]> resultados = ventaRepository.buscarVentasDTOConFiltrosNativo(
                 filtros.getCodigoVenta(),
                 filtros.getIdCliente(),
                 filtros.getIdUsuario(),
-                filtros.getEstado(),
+                estadoStr,
                 filtros.getIdMetodoPago(),
                 filtros.getFechaDesde(),
                 filtros.getFechaHasta(),
                 pageable
         );
+
+        return resultados.map(this::mapToVentaDTO);
     }
 
 
@@ -386,4 +391,55 @@ public class VentaServiceImpl implements IVentaService {
             }
         }
     }
+
+    private VentaDTO mapToVentaDTO(Object[] result) {
+        return VentaDTO.builder()
+                .idVenta(((Number) result[0]).longValue())
+                .codigoVenta((String) result[1])
+                .idCliente(((Number) result[2]).longValue())
+                .nombreCliente((String) result[3])
+                .idUsuario(((Number) result[4]).longValue())
+                .nombreUsuario((String) result[5])
+                .fechaCreacion(((java.sql.Timestamp) result[6]).toLocalDateTime())
+                .subtotal((BigDecimal) result[7])
+                .igv((BigDecimal) result[8])
+                .total((BigDecimal) result[9])
+                .idMetodoPago(((Number) result[10]).longValue())
+                .nombreMetodoPago((String) result[11])
+                .estado(convertirEstadoVenta((String) result[12]))
+                .tipoComprobante(convertirTipoComprobante((String) result[13]))
+                .observaciones((String) result[14])
+                .build();
+    }
+
+    /**
+     * Método auxiliar para convertir String a EstadoVenta de forma segura
+     */
+    private EstadoVenta convertirEstadoVenta(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return EstadoVenta.fromValor(valor.toLowerCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Valor no válido para EstadoVenta: {}, usando valor por defecto", valor);
+            return EstadoVenta.PENDIENTE; // Valor por defecto
+        }
+    }
+
+    /**
+     * Método auxiliar para convertir String a TipoComprobante de forma segura
+     */
+    private TipoComprobante convertirTipoComprobante(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return TipoComprobante.fromValor(valor.toLowerCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Valor no válido para TipoComprobante: {}, usando valor por defecto", valor);
+            return TipoComprobante.BOLETA; // Valor por defecto
+        }
+    }
+
 }

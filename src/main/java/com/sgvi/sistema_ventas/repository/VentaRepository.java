@@ -103,50 +103,63 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     /**
      * Búsqueda avanzada de ventas por múltiples filtros opcionales.
      */
-    @Query("""
-    SELECT new com.sgvi.sistema_ventas.model.dto.venta.VentaDTO(
-        v.idVenta,
-        v.codigoVenta,
-        c.idCliente,
-        c.nombre,
-        u.idUsuario,
-        u.nombre,
-        v.fechaCreacion,
+    @Query(value = """
+    SELECT 
+        v.idventa as idVenta,
+        v.codigoventa as codigoVenta,
+        c.idcliente as idCliente,
+        c.nombre as nombreCliente,
+        u.idusuario as idUsuario,
+        u.nombre as nombreUsuario,
+        v.fechacreacion as fechaCreacion,
         v.subtotal,
         v.igv,
         v.total,
-        m.idMetodoPago,
-        m.nombre,
+        m.idmetodopago as idMetodoPago,
+        m.nombre as nombreMetodoPago,
         v.estado,
-        v.tipoComprobante,
-        v.observaciones,
-        null,
-        null 
-    )
-    FROM Venta v
-    JOIN v.cliente c
-    JOIN v.usuario u
-    JOIN v.metodoPago m
-    WHERE (:codigoVenta IS NULL OR v.codigoVenta LIKE %:codigoVenta%)
-      AND (:idCliente IS NULL OR c.idCliente = :idCliente)
-      AND (:idUsuario IS NULL OR u.idUsuario = :idUsuario)
-      AND (:estado IS NULL OR v.estado = :estado)
-      AND (:idMetodoPago IS NULL OR m.idMetodoPago = :idMetodoPago)
-      AND (:fechaInicio IS NULL OR v.fechaCreacion >= :fechaInicio)
-      AND (:fechaFin IS NULL OR v.fechaCreacion <= :fechaFin)
-""")
-    Page<VentaDTO> buscarVentasDTOConFiltros(
+        v.tipocomprobante as tipoComprobante,
+        v.observaciones
+    FROM venta v 
+    JOIN cliente c ON c.idcliente = v.idcliente 
+    JOIN usuario u ON u.idusuario = v.idusuario 
+    JOIN metodo_pago m ON m.idmetodopago = v.idmetodopago 
+    WHERE 
+        (CAST(:codigoVenta AS TEXT) IS NULL OR v.codigoventa LIKE CONCAT('%', CAST(:codigoVenta AS TEXT), '%'))
+        AND (CAST(:idCliente AS BIGINT) IS NULL OR c.idcliente = CAST(:idCliente AS BIGINT))
+        AND (CAST(:idUsuario AS BIGINT) IS NULL OR u.idusuario = CAST(:idUsuario AS BIGINT))
+        AND (CAST(:estado AS TEXT) IS NULL OR v.estado = CAST(:estado AS TEXT))
+        AND (CAST(:idMetodoPago AS BIGINT) IS NULL OR m.idmetodopago = CAST(:idMetodoPago AS BIGINT))
+        AND (CAST(:fechaInicio AS TIMESTAMP) IS NULL OR v.fechacreacion >= CAST(:fechaInicio AS TIMESTAMP))
+        AND (CAST(:fechaFin AS TIMESTAMP) IS NULL OR v.fechacreacion <= CAST(:fechaFin AS TIMESTAMP))
+    ORDER BY v.fechacreacion DESC
+    """,
+            countQuery = """
+    SELECT COUNT(*)
+    FROM venta v 
+    JOIN cliente c ON c.idcliente = v.idcliente 
+    JOIN usuario u ON u.idusuario = v.idusuario 
+    JOIN metodo_pago m ON m.idmetodopago = v.idmetodopago 
+    WHERE 
+        (CAST(:codigoVenta AS TEXT) IS NULL OR v.codigoventa LIKE CONCAT('%', CAST(:codigoVenta AS TEXT), '%'))
+        AND (CAST(:idCliente AS BIGINT) IS NULL OR c.idcliente = CAST(:idCliente AS BIGINT))
+        AND (CAST(:idUsuario AS BIGINT) IS NULL OR u.idusuario = CAST(:idUsuario AS BIGINT))
+        AND (CAST(:estado AS TEXT) IS NULL OR v.estado = CAST(:estado AS TEXT))
+        AND (CAST(:idMetodoPago AS BIGINT) IS NULL OR m.idmetodopago = CAST(:idMetodoPago AS BIGINT))
+        AND (CAST(:fechaInicio AS TIMESTAMP) IS NULL OR v.fechacreacion >= CAST(:fechaInicio AS TIMESTAMP))
+        AND (CAST(:fechaFin AS TIMESTAMP) IS NULL OR v.fechacreacion <= CAST(:fechaFin AS TIMESTAMP))
+    """,
+            nativeQuery = true)
+    Page<Object[]> buscarVentasDTOConFiltrosNativo(
             @Param("codigoVenta") String codigoVenta,
             @Param("idCliente") Long idCliente,
             @Param("idUsuario") Long idUsuario,
-            @Param("estado") EstadoVenta estado,
+            @Param("estado") String estado,
             @Param("idMetodoPago") Long idMetodoPago,
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin,
             Pageable pageable
     );
-
-
 
     /**
      * Verifica si una venta puede ser anulada (dentro de las últimas 24 horas y con estado PAGADO).
