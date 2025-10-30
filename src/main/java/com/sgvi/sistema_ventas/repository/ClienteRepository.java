@@ -1,6 +1,7 @@
 package com.sgvi.sistema_ventas.repository;
 
 import com.sgvi.sistema_ventas.model.entity.Cliente;
+import com.sgvi.sistema_ventas.model.enums.TipoDocumento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,7 +24,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
      * @param numeroDocumento el número de documento
      * @return Optional con el cliente encontrado o vacío si no existe
      */
-    Optional<Cliente> findByTipoDocumentoAndNumeroDocumento(String tipoDocumento, String numeroDocumento);
+    Optional<Cliente> findByTipoDocumentoAndNumeroDocumento(TipoDocumento tipoDocumento, String numeroDocumento);
 
     /**
      * Busca un cliente por número de documento (sin importar el tipo).
@@ -48,7 +49,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
      * @param numeroDocumento el número de documento
      * @return true si existe, false en caso contrario
      */
-    boolean existsByTipoDocumentoAndNumeroDocumento(String tipoDocumento, String numeroDocumento);
+    boolean existsByTipoDocumentoAndNumeroDocumento(TipoDocumento tipoDocumento, String numeroDocumento);
 
     /**
      * Verifica si existe un cliente con el correo electrónico especificado.
@@ -72,7 +73,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
      * @param tipoDocumento el tipo de documento (DNI, RUC, CE)
      * @return lista de clientes con el tipo de documento especificado
      */
-    List<Cliente> findByTipoDocumento(String tipoDocumento);
+    List<Cliente> findByTipoDocumento(TipoDocumento tipoDocumento);
 
     /**
      * Busca clientes por nombre o apellido (búsqueda case-insensitive).
@@ -91,4 +92,14 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
      */
     @Query("SELECT c FROM Cliente c WHERE c.numeroDocumento LIKE CONCAT('%', :numeroDocumento, '%')")
     List<Cliente> findByNumeroDocumentoContaining(@Param("numeroDocumento") String numeroDocumento);
+
+    /**
+     * Busca un cliente por tipo de documento (String) - para compatibilidad
+     * @deprecated Usar {@link #findByTipoDocumentoAndNumeroDocumento(TipoDocumento, String)} en su lugar
+     */
+    @Deprecated
+    @Query("SELECT c FROM Cliente c WHERE c.tipoDocumento = :tipoDocumento AND c.numeroDocumento = :numeroDocumento")
+    Optional<Cliente> findByTipoDocumentoAndNumeroDocumentoString(
+            @Param("tipoDocumento") String tipoDocumento,
+            @Param("numeroDocumento") String numeroDocumento);
 }

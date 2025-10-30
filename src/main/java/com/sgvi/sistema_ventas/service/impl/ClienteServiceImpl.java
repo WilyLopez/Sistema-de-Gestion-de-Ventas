@@ -148,7 +148,7 @@ public class ClienteServiceImpl implements IClienteService {
     @Transactional(readOnly = true)
     public Cliente buscarPorDocumento(TipoDocumento tipoDocumento, String numeroDocumento) {
         return clienteRepository.findByTipoDocumentoAndNumeroDocumento(
-                        tipoDocumento.getCodigo(), numeroDocumento)
+                        tipoDocumento, numeroDocumento)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Constants.MSG_RECURSO_NO_ENCONTRADO + " con documento: "
                                 + tipoDocumento + " " + numeroDocumento));
@@ -208,7 +208,7 @@ public class ClienteServiceImpl implements IClienteService {
     @Transactional(readOnly = true)
     public boolean existeDocumento(TipoDocumento tipoDocumento, String numeroDocumento) {
         return clienteRepository.existsByTipoDocumentoAndNumeroDocumento(
-                tipoDocumento.getCodigo(), numeroDocumento);
+                tipoDocumento, numeroDocumento);
     }
 
     /**
