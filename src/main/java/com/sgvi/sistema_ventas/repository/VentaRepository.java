@@ -123,7 +123,7 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     FROM venta v 
     JOIN cliente c ON c.idcliente = v.idcliente 
     JOIN usuario u ON u.idusuario = v.idusuario 
-    JOIN metodo_pago m ON m.idmetodopago = v.idmetodopago 
+    JOIN metodopago m ON m.idmetodopago = v.idmetodopago 
     WHERE 
         (CAST(:codigoVenta AS TEXT) IS NULL OR v.codigoventa LIKE CONCAT('%', CAST(:codigoVenta AS TEXT), '%'))
         AND (CAST(:idCliente AS BIGINT) IS NULL OR c.idcliente = CAST(:idCliente AS BIGINT))
@@ -139,7 +139,7 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     FROM venta v 
     JOIN cliente c ON c.idcliente = v.idcliente 
     JOIN usuario u ON u.idusuario = v.idusuario 
-    JOIN metodo_pago m ON m.idmetodopago = v.idmetodopago 
+    JOIN metodopago m ON m.idmetodopago = v.idmetodopago 
     WHERE 
         (CAST(:codigoVenta AS TEXT) IS NULL OR v.codigoventa LIKE CONCAT('%', CAST(:codigoVenta AS TEXT), '%'))
         AND (CAST(:idCliente AS BIGINT) IS NULL OR c.idcliente = CAST(:idCliente AS BIGINT))
