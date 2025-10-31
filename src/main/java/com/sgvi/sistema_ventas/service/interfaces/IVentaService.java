@@ -1,5 +1,7 @@
 package com.sgvi.sistema_ventas.service.interfaces;
 
+import com.sgvi.sistema_ventas.model.dto.venta.VentaBusquedaDTO;
+import com.sgvi.sistema_ventas.model.dto.venta.VentaDTO;
 import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
 import com.sgvi.sistema_ventas.model.entity.Venta;
 import com.sgvi.sistema_ventas.model.enums.EstadoVenta;
@@ -48,22 +50,8 @@ public interface IVentaService {
      */
     Page<Venta> listarTodas(Pageable pageable);
 
-    /**
-     * RF-008: Buscar ventas con filtros múltiples
-     * @param codigoVenta Código de venta (opcional)
-     * @param idCliente ID del cliente (opcional)
-     * @param idUsuario ID del usuario/vendedor (opcional)
-     * @param estado Estado de la venta (opcional)
-     * @param idMetodoPago ID del método de pago (opcional)
-     * @param fechaInicio Fecha inicial (opcional)
-     * @param fechaFin Fecha final (opcional)
-     * @param pageable Parámetros de paginación
-     * @return Página de ventas filtradas
-     */
-    Page<Venta> buscarConFiltros(String codigoVenta, Long idCliente, Long idUsuario,
-                                 EstadoVenta estado, Long idMetodoPago,
-                                 LocalDateTime fechaInicio, LocalDateTime fechaFin,
-                                 Pageable pageable);
+
+    Page<VentaDTO> buscarVentasDTOConFiltros(VentaBusquedaDTO filtros);
 
     /**
      * RF-009: Anular una venta

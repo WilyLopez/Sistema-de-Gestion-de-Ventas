@@ -1,5 +1,6 @@
 package com.sgvi.sistema_ventas.repository;
 
+import com.sgvi.sistema_ventas.model.dto.venta.VentaDTO;
 import com.sgvi.sistema_ventas.model.entity.Venta;
 import com.sgvi.sistema_ventas.model.enums.EstadoVenta;
 import org.springframework.data.domain.Page;
@@ -102,21 +103,58 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     /**
      * Búsqueda avanzada de ventas por múltiples filtros opcionales.
      */
-    @Query("""
-           SELECT v FROM Venta v
-           WHERE (:codigoVenta IS NULL OR v.codigoVenta LIKE %:codigoVenta%)
-             AND (:idCliente IS NULL OR v.cliente.idCliente = :idCliente)
-             AND (:idUsuario IS NULL OR v.usuario.idUsuario = :idUsuario)
-             AND (:estado IS NULL OR v.estado = :estado)
-             AND (:idMetodoPago IS NULL OR v.metodoPago.idMetodoPago = :idMetodoPago)
-             AND (:fechaInicio IS NULL OR v.fechaCreacion >= :fechaInicio)
-             AND (:fechaFin IS NULL OR v.fechaCreacion <= :fechaFin)
-           """)
-    Page<Venta> buscarVentasConFiltros(
+    @Query(value = """
+    SELECT 
+        v.idventa as idVenta,
+        v.codigoventa as codigoVenta,
+        c.idcliente as idCliente,
+        c.nombre as nombreCliente,
+        u.idusuario as idUsuario,
+        u.nombre as nombreUsuario,
+        v.fechacreacion as fechaCreacion,
+        v.subtotal,
+        v.igv,
+        v.total,
+        m.idmetodopago as idMetodoPago,
+        m.nombre as nombreMetodoPago,
+        v.estado,
+        v.tipocomprobante as tipoComprobante,
+        v.observaciones
+    FROM venta v 
+    JOIN cliente c ON c.idcliente = v.idcliente 
+    JOIN usuario u ON u.idusuario = v.idusuario 
+    JOIN metodopago m ON m.idmetodopago = v.idmetodopago 
+    WHERE 
+        (CAST(:codigoVenta AS TEXT) IS NULL OR v.codigoventa LIKE CONCAT('%', CAST(:codigoVenta AS TEXT), '%'))
+        AND (CAST(:idCliente AS BIGINT) IS NULL OR c.idcliente = CAST(:idCliente AS BIGINT))
+        AND (CAST(:idUsuario AS BIGINT) IS NULL OR u.idusuario = CAST(:idUsuario AS BIGINT))
+        AND (CAST(:estado AS TEXT) IS NULL OR v.estado = CAST(:estado AS TEXT))
+        AND (CAST(:idMetodoPago AS BIGINT) IS NULL OR m.idmetodopago = CAST(:idMetodoPago AS BIGINT))
+        AND (CAST(:fechaInicio AS TIMESTAMP) IS NULL OR v.fechacreacion >= CAST(:fechaInicio AS TIMESTAMP))
+        AND (CAST(:fechaFin AS TIMESTAMP) IS NULL OR v.fechacreacion <= CAST(:fechaFin AS TIMESTAMP))
+    ORDER BY v.fechacreacion DESC
+    """,
+            countQuery = """
+    SELECT COUNT(*)
+    FROM venta v 
+    JOIN cliente c ON c.idcliente = v.idcliente 
+    JOIN usuario u ON u.idusuario = v.idusuario 
+    JOIN metodopago m ON m.idmetodopago = v.idmetodopago 
+    WHERE 
+        (CAST(:codigoVenta AS TEXT) IS NULL OR v.codigoventa LIKE CONCAT('%', CAST(:codigoVenta AS TEXT), '%'))
+        AND (CAST(:idCliente AS BIGINT) IS NULL OR c.idcliente = CAST(:idCliente AS BIGINT))
+        AND (CAST(:idUsuario AS BIGINT) IS NULL OR u.idusuario = CAST(:idUsuario AS BIGINT))
+        AND (CAST(:estado AS TEXT) IS NULL OR v.estado = CAST(:estado AS TEXT))
+        AND (CAST(:idMetodoPago AS BIGINT) IS NULL OR m.idmetodopago = CAST(:idMetodoPago AS BIGINT))
+        AND (CAST(:fechaInicio AS TIMESTAMP) IS NULL OR v.fechacreacion >= CAST(:fechaInicio AS TIMESTAMP))
+        AND (CAST(:fechaFin AS TIMESTAMP) IS NULL OR v.fechacreacion <= CAST(:fechaFin AS TIMESTAMP))
+    """,
+            nativeQuery = true)
+    Page<Object[]> buscarVentasDTOConFiltrosNativo(
             @Param("codigoVenta") String codigoVenta,
             @Param("idCliente") Long idCliente,
             @Param("idUsuario") Long idUsuario,
-            @Param("estado") EstadoVenta estado,
+            @Param("estado") String estado,
             @Param("idMetodoPago") Long idMetodoPago,
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin,

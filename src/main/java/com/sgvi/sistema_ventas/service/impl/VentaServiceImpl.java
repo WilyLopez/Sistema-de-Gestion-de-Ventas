@@ -3,10 +3,13 @@ package com.sgvi.sistema_ventas.service.impl;
 import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.exception.StockInsuficienteException;
 import com.sgvi.sistema_ventas.exception.VentaException;
+import com.sgvi.sistema_ventas.model.dto.venta.VentaBusquedaDTO;
+import com.sgvi.sistema_ventas.model.dto.venta.VentaDTO;
 import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
 import com.sgvi.sistema_ventas.model.entity.Producto;
 import com.sgvi.sistema_ventas.model.entity.Venta;
 import com.sgvi.sistema_ventas.model.enums.EstadoVenta;
+import com.sgvi.sistema_ventas.model.enums.TipoComprobante;
 import com.sgvi.sistema_ventas.repository.DetalleVentaRepository;
 import com.sgvi.sistema_ventas.repository.VentaRepository;
 import com.sgvi.sistema_ventas.service.interfaces.IInventarioService;
@@ -19,7 +22,9 @@ import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -132,27 +137,34 @@ public class VentaServiceImpl implements IVentaService {
     /**
      * Busca ventas aplicando múltiples filtros opcionales.
      *
-     * @param codigoVenta Código de la venta
-     * @param idCliente ID del cliente
-     * @param idUsuario ID del vendedor
-     * @param estado Estado de la venta
-     * @param idMetodoPago ID del método de pago
-     * @param fechaInicio Fecha inicial del rango
-     * @param fechaFin Fecha final del rango
-     * @param pageable Configuración de paginación
+
      * @return Página de ventas que coinciden con los filtros
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<Venta> buscarConFiltros(String codigoVenta, Long idCliente, Long idUsuario,
-                                        EstadoVenta estado, Long idMetodoPago,
-                                        LocalDateTime fechaInicio, LocalDateTime fechaFin,
-                                        Pageable pageable) {
-        return ventaRepository.buscarVentasConFiltros(
-                codigoVenta, idCliente, idUsuario, estado, idMetodoPago,
-                fechaInicio, fechaFin, pageable
+    public Page<VentaDTO> buscarVentasDTOConFiltros(VentaBusquedaDTO filtros) {
+        Pageable pageable = PageRequest.of(
+                filtros.getPagina(),
+                filtros.getTamanio(),
+                Sort.by(Sort.Direction.fromString(filtros.getDireccion()), filtros.getOrdenarPor())
         );
+
+        String estadoStr = filtros.getEstado() != null ? filtros.getEstado().name() : null;
+
+        Page<Object[]> resultados = ventaRepository.buscarVentasDTOConFiltrosNativo(
+                filtros.getCodigoVenta(),
+                filtros.getIdCliente(),
+                filtros.getIdUsuario(),
+                estadoStr,
+                filtros.getIdMetodoPago(),
+                filtros.getFechaDesde(),
+                filtros.getFechaHasta(),
+                pageable
+        );
+
+        return resultados.map(this::mapToVentaDTO);
     }
+
 
     /**
      * Anula una venta si cumple las condiciones establecidas.
@@ -379,4 +391,55 @@ public class VentaServiceImpl implements IVentaService {
             }
         }
     }
+
+    private VentaDTO mapToVentaDTO(Object[] result) {
+        return VentaDTO.builder()
+                .idVenta(((Number) result[0]).longValue())
+                .codigoVenta((String) result[1])
+                .idCliente(((Number) result[2]).longValue())
+                .nombreCliente((String) result[3])
+                .idUsuario(((Number) result[4]).longValue())
+                .nombreUsuario((String) result[5])
+                .fechaCreacion(((java.sql.Timestamp) result[6]).toLocalDateTime())
+                .subtotal((BigDecimal) result[7])
+                .igv((BigDecimal) result[8])
+                .total((BigDecimal) result[9])
+                .idMetodoPago(((Number) result[10]).longValue())
+                .nombreMetodoPago((String) result[11])
+                .estado(convertirEstadoVenta((String) result[12]))
+                .tipoComprobante(convertirTipoComprobante((String) result[13]))
+                .observaciones((String) result[14])
+                .build();
+    }
+
+    /**
+     * Método auxiliar para convertir String a EstadoVenta de forma segura
+     */
+    private EstadoVenta convertirEstadoVenta(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return EstadoVenta.fromValor(valor.toLowerCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Valor no válido para EstadoVenta: {}, usando valor por defecto", valor);
+            return EstadoVenta.PENDIENTE; // Valor por defecto
+        }
+    }
+
+    /**
+     * Método auxiliar para convertir String a TipoComprobante de forma segura
+     */
+    private TipoComprobante convertirTipoComprobante(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return TipoComprobante.fromValor(valor.toLowerCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Valor no válido para TipoComprobante: {}, usando valor por defecto", valor);
+            return TipoComprobante.BOLETA; // Valor por defecto
+        }
+    }
+
 }

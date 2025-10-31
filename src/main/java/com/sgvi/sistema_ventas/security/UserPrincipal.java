@@ -15,7 +15,7 @@ import java.util.Collections;
  * Encapsula los datos del usuario para el sistema de seguridad.
  *
  * @author Wilian Lopez
- * @version 1.1
+ * @version 1.2
  * @since 2024
  */
 @Data
@@ -45,7 +45,7 @@ public class UserPrincipal implements UserDetails {
 
         return new UserPrincipal(
                 usuario.getIdUsuario(),
-                usuario.getCorreo(), // ← aquí usamos el correo como username
+                usuario.getUsername(),
                 usuario.getContrasena(),
                 usuario.getNombre(),
                 usuario.getApellido(),
@@ -68,7 +68,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public String getUsername() {
-        return username;
+        return username; // ✅ Devuelve el username real
     }
 
     @Override

@@ -46,7 +46,6 @@ public class Inventario {
      * Tipo de movimiento (entrada, salida, ajuste, devolución)
      * Usa el enum TipoMovimiento para los valores permitidos
      */
-    @Enumerated(EnumType.STRING)
     @Column(name = "tipomovimiento", nullable = false, length = 20)
     private TipoMovimiento tipoMovimiento;
 

@@ -32,7 +32,7 @@ public class VentaDTO {
     private BigDecimal igv;
     private BigDecimal total;
     private Long idMetodoPago;
-    private String metodoPago;
+    private String nombreMetodoPago;
     private EstadoVenta estado;
     private TipoComprobante tipoComprobante;
     private String observaciones;

@@ -95,10 +95,8 @@ public class Venta {
      * Estado actual de la venta
      * Usa el enum EstadoVenta para los valores permitidos
      */
-    @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)
-    @Builder.Default
-    private EstadoVenta estado = EstadoVenta.EN_PROCESO;
+    private EstadoVenta estado;
 
     /**
      * Tipo de comprobante generado (Boleta o Factura)

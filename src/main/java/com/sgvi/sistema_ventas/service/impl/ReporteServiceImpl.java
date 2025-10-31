@@ -38,6 +38,7 @@ public class ReporteServiceImpl implements IReporteService {
     private final InventarioRepository inventarioRepository;
     private final DevolucionRepository devolucionRepository;
     private final DetalleVentaRepository detalleVentaRepository;
+    private final ClienteRepository clienteRepository;
 
     // Exportadores Excel
     private final VentaExcelExporter ventaExcelExporter;
@@ -158,50 +159,77 @@ public class ReporteServiceImpl implements IReporteService {
             LocalDateTime inicioHoy = hoy.toLocalDate().atStartOfDay();
             LocalDateTime finHoy = hoy.toLocalDate().atTime(23, 59, 59);
 
-            // KPI 1: Ventas de hoy
+            LocalDateTime inicioMes = hoy.withDayOfMonth(1).toLocalDate().atStartOfDay();
+
+            // KPI 1: Ventas de hoy (estructura que espera el frontend)
             List<Venta> ventasHoy = ventaRepository.findByFechaCreacionBetween(inicioHoy, finHoy);
             BigDecimal totalVentasHoy = ventasHoy.stream()
                     .map(Venta::getTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            datos.put("ventasHoy", ventasHoy.size());
-            datos.put("montoVentasHoy", totalVentasHoy);
+            Map<String, Object> ventasHoyData = new HashMap<>();
+            ventasHoyData.put("total", totalVentasHoy);
+            ventasHoyData.put("cantidad", ventasHoy.size());
+            ventasHoyData.put("cambio", "0%");
+            ventasHoyData.put("tendencia", "neutral");
+            datos.put("ventasHoy", ventasHoyData);
 
-            // KPI 2: Stock crítico (productos con stock agotado o menor igual a 2)
-            Long stockCritico = productoRepository.countByEstadoTrueAndStockLessThanEqual(2);
-            datos.put("productosStockCritico", stockCritico);
-
-            // KPI 3: Alertas pendientes
-            Long alertasPendientes = productoRepository.countByEstadoTrueAndStockLessThanEqual(5);
-            datos.put("alertasPendientes", alertasPendientes);
-
-            // KPI 4: Top 5 productos más vendidos del mes
-            LocalDateTime inicioMes = hoy.withDayOfMonth(1).toLocalDate().atStartOfDay();
-            List<Map<String, Object>> topProductos = obtenerTopProductos(inicioMes, hoy, 5);
-            datos.put("topProductosMes", topProductos);
-
-            // KPI 5: Ventas por categoría del mes
-            List<Map<String, Object>> ventasPorCategoria = obtenerVentasPorCategoria(inicioMes, hoy);
-            datos.put("ventasPorCategoria", ventasPorCategoria);
-
-            // KPI 6: Total de productos activos
-            Long totalProductos = productoRepository.countByEstadoTrue();
-            datos.put("totalProductos", totalProductos);
-
-            // KPI 7: Ventas del mes
+            // KPI 2: Ventas del mes
             List<Venta> ventasMes = ventaRepository.findByFechaCreacionBetween(inicioMes, hoy);
             BigDecimal totalVentasMes = ventasMes.stream()
                     .map(Venta::getTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            datos.put("ventasMes", ventasMes.size());
-            datos.put("montoVentasMes", totalVentasMes);
+            Map<String, Object> ventasMesData = new HashMap<>();
+            ventasMesData.put("total", totalVentasMes);
+            ventasMesData.put("cantidad", ventasMes.size());
+            ventasMesData.put("cambio", "0%");
+            ventasMesData.put("tendencia", "neutral");
+            datos.put("ventasMes", ventasMesData);
 
-            // KPI 8: Promedio de venta
-            BigDecimal promedioVenta = ventasMes.isEmpty() ? BigDecimal.ZERO :
-                    totalVentasMes.divide(BigDecimal.valueOf(ventasMes.size()), 2,
-                            java.math.RoundingMode.HALF_UP);
-            datos.put("promedioVenta", promedioVenta);
+            // KPI 3: Productos en stock
+            Long totalProductos = productoRepository.countByEstadoTrue();
+            Long stockCritico = productoRepository.countByEstadoTrueAndStockLessThanEqual(2);
+            Long stockAgotado = productoRepository.countByEstadoTrueAndStockEquals(0);
+
+            Map<String, Object> productosStockData = new HashMap<>();
+            productosStockData.put("total", totalProductos);
+            productosStockData.put("criticos", stockCritico);
+            productosStockData.put("agotados", stockAgotado);
+            datos.put("productosStock", productosStockData);
+
+            // KPI 4: Clientes (necesitas agregar este repositorio)
+            Long totalClientes = clienteRepository.countByEstadoTrue();
+            Long nuevosClientesMes = clienteRepository.countByFechaRegistroBetween(inicioMes, hoy);
+
+            Map<String, Object> clientesData = new HashMap<>();
+            clientesData.put("total", totalClientes);
+            clientesData.put("nuevos", nuevosClientesMes);
+            datos.put("clientes", clientesData);
+
+            // KPI 5: Ventas por día (últimos 7 días)
+            List<Map<String, Object>> ventasPorDia = new ArrayList<>();
+            for (int i = 6; i >= 0; i--) {
+                LocalDateTime fecha = hoy.minusDays(i);
+                LocalDateTime inicioDia = fecha.toLocalDate().atStartOfDay();
+                LocalDateTime finDia = fecha.toLocalDate().atTime(23, 59, 59);
+
+                List<Venta> ventasDia = ventaRepository.findByFechaCreacionBetween(inicioDia, finDia);
+                BigDecimal totalDia = ventasDia.stream()
+                        .map(Venta::getTotal)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                Map<String, Object> diaData = new HashMap<>();
+                diaData.put("fecha", fecha.toLocalDate().toString());
+                diaData.put("total", totalDia);
+                diaData.put("ventas", ventasDia.size());
+                ventasPorDia.add(diaData);
+            }
+            datos.put("ventasPorDia", ventasPorDia);
+
+            // KPI 6: Top categorías
+            List<Map<String, Object>> topCategorias = obtenerVentasPorCategoria(inicioMes, hoy);
+            datos.put("topCategorias", topCategorias);
 
             log.info("Datos del dashboard obtenidos exitosamente");
             return datos;
