@@ -1,8 +1,9 @@
-package com.sgvi.sistema_ventas.service.impl;
+package com.sgvi.sistema_ventas.Service;
 
 import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.model.entity.Usuario;
 import com.sgvi.sistema_ventas.repository.UsuarioRepository;
+import com.sgvi.sistema_ventas.service.impl.UsuarioServiceImpl;
 import com.sgvi.sistema_ventas.util.validation.EmailValidator;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
