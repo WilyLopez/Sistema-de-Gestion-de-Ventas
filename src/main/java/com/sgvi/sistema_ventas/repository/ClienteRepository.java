@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -102,4 +103,18 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     Optional<Cliente> findByTipoDocumentoAndNumeroDocumentoString(
             @Param("tipoDocumento") String tipoDocumento,
             @Param("numeroDocumento") String numeroDocumento);
+
+    /**
+     * Cuenta clientes activos (estado = true)
+     * @return Número total de clientes activos
+     */
+    Long countByEstadoTrue();
+
+    /**
+     * Cuenta clientes registrados en un rango de fechas
+     * @param fechaInicio Fecha inicial
+     * @param fechaFin Fecha final
+     * @return Número de clientes registrados en el período
+     */
+    Long countByFechaRegistroBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
 }
