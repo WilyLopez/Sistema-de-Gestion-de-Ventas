@@ -145,21 +145,31 @@
 		</dependency>
 
 		<!--  TESTING  -->
-		<!-- FRAMEWORK 1: JUnit 5  -->
+		<!-- JUnit 5 (para @Test y @ExtendWith) -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.10.2</version>
 			<scope>test</scope>
 		</dependency>
 
-		<!-- FRAMEWORK 2: Mockito  -->
+		<!-- Mockito Core (para mocks básicos) -->
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
+			<version>5.13.0</version>
 			<scope>test</scope>
 		</dependency>
 
-		<!-- FRAMEWORK 3: TestNG -->
+		<!-- Mockito JUnit Jupiter (integración con JUnit 5) -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-junit-jupiter</artifactId>
+			<version>5.13.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- TestNG para pruebas -->
 		<dependency>
 			<groupId>org.testng</groupId>
 			<artifactId>testng</artifactId>
@@ -167,6 +177,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!--Asegura compatibilidad con JUnit (si algunos tests aún lo usan) -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.10.2</version>
+			<scope>test</scope>
+		</dependency>
 		<!-- Spring Security Test -->
 		<dependency>
 			<groupId>org.springframework.security</groupId>
