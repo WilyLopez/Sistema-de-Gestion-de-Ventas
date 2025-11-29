@@ -3,7 +3,6 @@ package com.sgvi.sistema_ventas.controller;
 import com.sgvi.sistema_ventas.model.dto.auth.MessageResponse;
 import com.sgvi.sistema_ventas.model.dto.venta.*;
 import com.sgvi.sistema_ventas.model.entity.*;
-import com.sgvi.sistema_ventas.model.enums.EstadoVenta;
 import com.sgvi.sistema_ventas.repository.ClienteRepository;
 import com.sgvi.sistema_ventas.repository.MetodoPagoRepository;
 import com.sgvi.sistema_ventas.repository.ProductoRepository;
@@ -183,7 +182,7 @@ public class VentaRestController {
      * @param codigo Código de la venta
      * @return Venta encontrada
      */
-    @GetMapping("/codigo/{codigo}")
+    @GetMapping("/codigo/{codigoVenta}")
     @Operation(
             summary = "Buscar por código",
             description = "Obtiene una venta por su código único"
@@ -198,18 +197,18 @@ public class VentaRestController {
                     description = "Venta no encontrada"
             )
     })
-    public ResponseEntity<?> obtenerPorCodigo(@PathVariable String codigo) {
+    public ResponseEntity<?> obtenerPorCodigo(@PathVariable String codigoVenta) {
         try {
-            log.info("GET /api/ventas/codigo/{}", codigo);
-            Venta venta = ventaService.obtenerPorCodigo(codigo);
+            log.info("GET /api/ventas/codigo/{}", codigoVenta);
+            Venta venta = ventaService.obtenerPorCodigo(codigoVenta);
             VentaDTO ventaDTO = convertirAVentaDTO(venta); // ← Convertir a DTO
             return ResponseEntity.ok(ventaDTO);
 
         } catch (Exception e) {
-            log.error("Error al obtener venta por código {}: {}", codigo, e.getMessage());
+            log.error("Error al obtener venta por código {}: {}", codigoVenta, e.getMessage());
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
-                    .body(new MessageResponse("Venta no encontrada con código: " + codigo));
+                    .body(new MessageResponse("Venta no encontrada con código: " + codigoVenta));
         }
     }
 
@@ -403,6 +402,27 @@ public class VentaRestController {
         estadisticas.put("totalVendido", ventaService.obtenerTotalVentas(fechaInicio, fechaFin));
         estadisticas.put("cantidadVentas", ventaService.contarVentas(fechaInicio, fechaFin));
 
+        return ResponseEntity.ok(estadisticas);
+    }
+
+    /**
+     * Obtiene estadísticas de ventas para un vendedor específico.
+     * Solo accesible por el propio vendedor o un administrador.
+     */
+    @GetMapping("/vendedor/estadisticas")
+    @PreAuthorize("#idUsuario == authentication.principal.id or hasRole('ADMINISTRADOR')")
+    @Operation(
+            summary = "Estadísticas de Ventas por Vendedor",
+            description = "Obtiene total vendido y cantidad de ventas para un vendedor específico en un rango de fechas."
+    )
+    public ResponseEntity<Map<String, Object>> obtenerEstadisticasVendedor(
+            @RequestParam Long idUsuario,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
+        
+        log.info("GET /api/ventas/vendedor/estadisticas - Vendedor ID: {}, Período: {} a {}", idUsuario, fechaInicio, fechaFin);
+
+        Map<String, Object> estadisticas = ventaService.obtenerEstadisticasVendedor(idUsuario, fechaInicio, fechaFin);
         return ResponseEntity.ok(estadisticas);
     }
 

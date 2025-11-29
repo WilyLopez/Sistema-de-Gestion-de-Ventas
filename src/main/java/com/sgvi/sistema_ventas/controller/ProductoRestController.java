@@ -327,15 +327,20 @@ public class ProductoRestController {
      */
     @GetMapping("/buscar")
     @Operation(
-            summary = "Buscar productos",
-            description = "Busca productos por nombre, código o descripción"
+            summary = "Buscar productos con filtros",
+            description = "Busca y filtra productos por texto, categoría y rango de precios."
     )
     public ResponseEntity<Page<Producto>> buscar(
-            @RequestParam String texto,
+            @RequestParam(required = false) String texto,
+            @RequestParam(required = false) Long idCategoria,
+            @RequestParam(required = false) BigDecimal precioMin,
+            @RequestParam(required = false) BigDecimal precioMax,
             Pageable pageable) {
 
-        log.info("GET /api/productos/buscar?texto={}", texto);
-        Page<Producto> productos = productoService.buscar(texto, pageable);
+        log.info("GET /api/productos/buscar con filtros - texto: [{}], idCategoria: [{}], precioMin: [{}], precioMax: [{}]",
+                texto, idCategoria, precioMin, precioMax);
+
+        Page<Producto> productos = productoService.buscar(texto, idCategoria, precioMin, precioMax, pageable);
         return ResponseEntity.ok(productos);
     }
 

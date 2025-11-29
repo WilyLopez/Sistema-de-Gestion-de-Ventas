@@ -486,6 +486,35 @@ public class ReporteRestController {
     }
 
     /**
+     * Obtiene el reporte diario de ventas para un vendedor específico.
+     * Solo accesible por el propio vendedor o un administrador.
+     *
+     * @param idUsuario ID del vendedor
+     * @param fecha Fecha para el reporte (formato YYYY-MM-DD)
+     * @return Mapa con los datos del reporte diario
+     */
+    @GetMapping("/vendedor/diario")
+    @PreAuthorize("#idUsuario == authentication.principal.id or hasRole('ADMINISTRADOR')")
+    @Operation(
+            summary = "Reporte Diario de Vendedor",
+            description = "Obtiene un resumen de ventas (KPIs y productos vendidos) para un vendedor específico en una fecha dada."
+    )
+    public ResponseEntity<?> obtenerReporteDiarioVendedor(
+            @RequestParam Long idUsuario,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate fecha) {
+        try {
+            log.info("GET /api/reportes/vendedor/diario - Vendedor ID: {}, Fecha: {}", idUsuario, fecha);
+            Map<String, Object> reporte = reporteService.obtenerReporteDiarioVendedor(idUsuario, fecha);
+            return ResponseEntity.ok(reporte);
+        } catch (Exception e) {
+            log.error("Error al generar reporte diario para vendedor {}: {}", idUsuario, e.getMessage(), e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Error al generar el reporte diario del vendedor."));
+        }
+    }
+
+    /**
      * RF-014: Análisis de ventas por categoría de producto.
      * Agrupa y totaliza ventas según la categoría de productos.
      *

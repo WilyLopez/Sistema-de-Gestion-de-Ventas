@@ -11,16 +11,19 @@ import com.sgvi.sistema_ventas.service.interfaces.IAlertaService;
 import com.sgvi.sistema_ventas.service.interfaces.IProductoService;
 import com.sgvi.sistema_ventas.util.Constants;
 import com.sgvi.sistema_ventas.util.validation.NumberUtil;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -179,21 +182,53 @@ public class ProductoServiceImpl implements IProductoService {
     }
 
     /**
-     * Busca productos por nombre o descripción con paginación.
+     * Busca productos por múltiples criterios con paginación.
      *
-     * @param texto Texto a buscar
-     * @param pageable Configuración de paginación
-     * @return Página de productos que coinciden con la búsqueda
+     * @param texto Texto a buscar en nombre, código o descripción.
+     * @param idCategoria ID de la categoría para filtrar.
+     * @param precioMin Precio mínimo para filtrar.
+     * @param precioMax Precio máximo para filtrar.
+     * @param pageable Configuración de paginación.
+     * @return Página de productos que coinciden con los criterios.
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<Producto> buscar(String texto, Pageable pageable) {
-        List<Producto> productos = productoRepository
-                .findByNombreOrDescripcionContainingIgnoreCase(texto)
-                .stream()
-                .toList();
+    public Page<Producto> buscar(String texto, Long idCategoria, BigDecimal precioMin, BigDecimal precioMax, Pageable pageable) {
+        Specification<Producto> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
-        return new PageImpl<>(productos, pageable, productos.size());
+            // Filtro por texto (nombre, codigo, descripcion)
+            if (texto != null && !texto.trim().isEmpty()) {
+                String likePattern = "%" + texto.toLowerCase() + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), likePattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("codigo")), likePattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("descripcion")), likePattern)
+                ));
+            }
+
+            // Filtro por categoría
+            if (idCategoria != null) {
+                predicates.add(criteriaBuilder.equal(root.get("idCategoria"), idCategoria));
+            }
+
+            // Filtro por rango de precio
+            if (precioMin != null && precioMax != null) {
+                predicates.add(criteriaBuilder.between(root.get("precioVenta"), precioMin, precioMax));
+            } else if (precioMin != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("precioVenta"), precioMin));
+            } else if (precioMax != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("precioVenta"), precioMax));
+            }
+            
+            // Solo productos activos
+            predicates.add(criteriaBuilder.isTrue(root.get("estado")));
+
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return productoRepository.findAll(spec, pageable);
     }
 
     /**

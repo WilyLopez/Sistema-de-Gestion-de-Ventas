@@ -242,6 +242,68 @@ public class ReporteServiceImpl implements IReporteService {
 
     @Override
     @Transactional(readOnly = true)
+    public Map<String, Object> obtenerReporteDiarioVendedor(Long idUsuario, java.time.LocalDate fecha) {
+        log.info("Generando reporte diario para vendedor ID: {} en fecha: {}", idUsuario, fecha);
+
+        LocalDateTime inicioDia = fecha.atStartOfDay();
+        LocalDateTime finDia = fecha.atTime(23, 59, 59);
+
+        List<Venta> ventas = ventaRepository.findByUsuarioIdUsuarioAndFechaCreacionBetween(idUsuario, inicioDia, finDia);
+
+        // 1. Calcular KPIs
+        BigDecimal totalVentas = ventas.stream()
+                .filter(v -> v.getEstado() == com.sgvi.sistema_ventas.model.enums.EstadoVenta.PAGADO)
+                .map(Venta::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long numeroTransacciones = ventas.stream()
+                .filter(v -> v.getEstado() == com.sgvi.sistema_ventas.model.enums.EstadoVenta.PAGADO)
+                .count();
+
+        BigDecimal promedioPorVenta = (numeroTransacciones > 0)
+                ? totalVentas.divide(new BigDecimal(numeroTransacciones), 2, java.math.RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        // 2. Agregar productos vendidos
+        Map<Long, Map<String, Object>> productosVendidos = new HashMap<>();
+        ventas.stream()
+            .filter(v -> v.getEstado() == com.sgvi.sistema_ventas.model.enums.EstadoVenta.PAGADO)
+            .forEach(venta -> {
+                venta.getDetallesVenta().forEach(detalle -> {
+                    Producto producto = detalle.getProducto();
+                    productosVendidos.compute(producto.getIdProducto(), (id, existingProduct) -> {
+                        if (existingProduct == null) {
+                            Map<String, Object> newProduct = new HashMap<>();
+                            newProduct.put("id", producto.getIdProducto());
+                            newProduct.put("nombre", producto.getNombre());
+                            newProduct.put("cantidad", detalle.getCantidad());
+                            newProduct.put("total", detalle.getSubtotal());
+                            return newProduct;
+                        } else {
+                            existingProduct.put("cantidad", (Integer) existingProduct.get("cantidad") + detalle.getCantidad());
+                            existingProduct.put("total", ((BigDecimal) existingProduct.get("total")).add(detalle.getSubtotal()));
+                            return existingProduct;
+                        }
+                    });
+                });
+        });
+
+        // 3. Construir el resultado
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("totalVentas", totalVentas);
+        resultado.put("numeroTransacciones", numeroTransacciones);
+        resultado.put("promedioPorVenta", promedioPorVenta);
+        resultado.put("productosVendidos", new ArrayList<>(productosVendidos.values()));
+        resultado.put("fechaReporte", fecha.toString());
+        resultado.put("idVendedor", idUsuario);
+
+        log.info("Reporte diario generado para vendedor ID: {}. Total Ventas: {}, Transacciones: {}", idUsuario, totalVentas, numeroTransacciones);
+
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> obtenerVentasPorCategoria(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         log.info("Obteniendo ventas por categoría del {} al {}", fechaInicio, fechaFin);
 

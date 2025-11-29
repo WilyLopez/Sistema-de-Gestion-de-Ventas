@@ -13,8 +13,8 @@ public class EstadoVentaConverter implements AttributeConverter<EstadoVenta, Str
             return null;
         }
         return estado.getValor();
-    }
 
+    }
     @Override
     public EstadoVenta convertToEntityAttribute(String dbData) {
         if (dbData == null) {

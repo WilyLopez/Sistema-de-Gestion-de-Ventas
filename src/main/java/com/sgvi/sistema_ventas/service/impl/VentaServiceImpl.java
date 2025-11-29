@@ -34,7 +34,8 @@ import java.util.List;
 
 /**
  * Implementación del servicio de gestión de ventas.
- * Maneja el ciclo completo de ventas incluyendo transacciones, cálculos automáticos
+ * Maneja el ciclo completo de ventas incluyendo transacciones, cálculos
+ * automáticos
  * de IGV y actualización de inventario.
  *
  * @author Wilian Lopez
@@ -58,11 +59,12 @@ public class VentaServiceImpl implements IVentaService {
      * Registra una nueva venta en el sistema.
      * Valida stock, calcula totales, genera código y actualiza inventario.
      *
-     * @param venta Datos principales de la venta
+     * @param venta    Datos principales de la venta
      * @param detalles Lista de productos y cantidades vendidas
      * @return Venta registrada con todos sus detalles
-     * @throws ValidationException Si los datos de la venta no son válidos
-     * @throws StockInsuficienteException Si algún producto no tiene stock suficiente
+     * @throws ValidationException        Si los datos de la venta no son válidos
+     * @throws StockInsuficienteException Si algún producto no tiene stock
+     *                                    suficiente
      */
     @Override
     public Venta registrarVenta(Venta venta, List<DetalleVenta> detalles) {
@@ -102,7 +104,7 @@ public class VentaServiceImpl implements IVentaService {
     @Override
     @Transactional(readOnly = true)
     public Venta obtenerPorId(Long id) {
-        return ventaRepository.findById(id)
+        return ventaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Constants.MSG_RECURSO_NO_ENCONTRADO + " con ID: " + id));
     }
@@ -117,7 +119,7 @@ public class VentaServiceImpl implements IVentaService {
     @Override
     @Transactional(readOnly = true)
     public Venta obtenerPorCodigo(String codigoVenta) {
-        return ventaRepository.findByCodigoVenta(codigoVenta)
+        return ventaRepository.findByCodigoVentaWithDetails(codigoVenta)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Constants.MSG_RECURSO_NO_ENCONTRADO + " con código: " + codigoVenta));
     }
@@ -137,7 +139,7 @@ public class VentaServiceImpl implements IVentaService {
     /**
      * Busca ventas aplicando múltiples filtros opcionales.
      *
-
+     * 
      * @return Página de ventas que coinciden con los filtros
      */
     @Override
@@ -146,8 +148,7 @@ public class VentaServiceImpl implements IVentaService {
         Pageable pageable = PageRequest.of(
                 filtros.getPagina(),
                 filtros.getTamanio(),
-                Sort.by(Sort.Direction.fromString(filtros.getDireccion()), filtros.getOrdenarPor())
-        );
+                Sort.by(Sort.Direction.fromString(filtros.getDireccion()), filtros.getOrdenarPor()));
 
         String estadoStr = filtros.getEstado() != null ? filtros.getEstado().name() : null;
 
@@ -159,19 +160,18 @@ public class VentaServiceImpl implements IVentaService {
                 filtros.getIdMetodoPago(),
                 filtros.getFechaDesde(),
                 filtros.getFechaHasta(),
-                pageable
-        );
+                pageable);
 
         return resultados.map(this::mapToVentaDTO);
     }
 
-
     /**
      * Anula una venta si cumple las condiciones establecidas.
-     * Revierte el stock de todos los productos y registra la devolución en inventario.
+     * Revierte el stock de todos los productos y registra la devolución en
+     * inventario.
      *
      * @param idVenta ID de la venta a anular
-     * @param motivo Motivo de la anulación
+     * @param motivo  Motivo de la anulación
      * @throws VentaException Si la venta no puede anularse
      */
     @Override
@@ -231,7 +231,7 @@ public class VentaServiceImpl implements IVentaService {
         BigDecimal igv = numberUtil.calcularIGV(subtotal);
         BigDecimal total = subtotal.add(igv);
 
-        return new BigDecimal[]{
+        return new BigDecimal[] {
                 numberUtil.redondearMoneda(subtotal),
                 numberUtil.redondearMoneda(igv),
                 numberUtil.redondearMoneda(total)
@@ -254,7 +254,7 @@ public class VentaServiceImpl implements IVentaService {
      * Obtiene todas las ventas de un periodo específico.
      *
      * @param fechaInicio Fecha inicial del periodo
-     * @param fechaFin Fecha final del periodo
+     * @param fechaFin    Fecha final del periodo
      * @return Lista de ventas en el periodo
      */
     @Override
@@ -267,7 +267,7 @@ public class VentaServiceImpl implements IVentaService {
      * Calcula el total vendido en un periodo.
      *
      * @param fechaInicio Fecha inicial del periodo
-     * @param fechaFin Fecha final del periodo
+     * @param fechaFin    Fecha final del periodo
      * @return Suma total de ventas en el periodo
      */
     @Override
@@ -280,7 +280,7 @@ public class VentaServiceImpl implements IVentaService {
      * Cuenta el número de ventas realizadas en un periodo.
      *
      * @param fechaInicio Fecha inicial del periodo
-     * @param fechaFin Fecha final del periodo
+     * @param fechaFin    Fecha final del periodo
      * @return Cantidad de ventas en el periodo
      */
     @Override
@@ -289,11 +289,30 @@ public class VentaServiceImpl implements IVentaService {
         return ventaRepository.countVentasPorPeriodo(fechaInicio, fechaFin);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> obtenerEstadisticasVendedor(Long idUsuario, LocalDateTime fechaInicio,
+            LocalDateTime fechaFin) {
+        if (idUsuario == null) {
+            throw new ValidationException("El ID del usuario es obligatorio para obtener sus estadísticas.");
+        }
+
+        BigDecimal totalVendido = ventaRepository.getTotalVentasPorUsuarioYPeriodo(idUsuario, fechaInicio, fechaFin);
+        Long cantidadVentas = ventaRepository.countVentasPorUsuarioYPeriodo(idUsuario, fechaInicio, fechaFin);
+
+        java.util.Map<String, Object> estadisticas = new java.util.HashMap<>();
+        estadisticas.put("totalVendido", totalVendido);
+        estadisticas.put("cantidadVentas", cantidadVentas);
+
+        return estadisticas;
+    }
+
     /**
      * Verifica que todos los productos tengan stock suficiente.
      *
      * @param detalles Lista de productos a verificar
-     * @throws StockInsuficienteException Si algún producto no tiene stock suficiente
+     * @throws StockInsuficienteException Si algún producto no tiene stock
+     *                                    suficiente
      */
     private void verificarStockDisponible(List<DetalleVenta> detalles) {
         for (DetalleVenta detalle : detalles) {
@@ -301,8 +320,7 @@ public class VentaServiceImpl implements IVentaService {
                 Producto producto = productoService.obtenerPorId(detalle.getProducto().getIdProducto());
                 throw new StockInsuficienteException(
                         Constants.ERR_STOCK_INSUFICIENTE + " para producto: " + producto.getNombre() +
-                                ". Stock disponible: " + producto.getStock()
-                );
+                                ". Stock disponible: " + producto.getStock());
             }
         }
     }
@@ -310,7 +328,7 @@ public class VentaServiceImpl implements IVentaService {
     /**
      * Procesa y guarda los detalles de la venta, actualizando stock e inventario.
      *
-     * @param venta Venta guardada
+     * @param venta    Venta guardada
      * @param detalles Lista de detalles a procesar
      */
     private void procesarDetallesVenta(Venta venta, List<DetalleVenta> detalles) {
@@ -321,15 +339,13 @@ public class VentaServiceImpl implements IVentaService {
 
             productoService.actualizarStock(
                     detalle.getProducto().getIdProducto(),
-                    -detalle.getCantidad()
-            );
+                    -detalle.getCantidad());
 
             inventarioService.registrarSalida(
                     detalle.getProducto().getIdProducto(),
                     detalle.getCantidad(),
                     venta.getUsuario().getIdUsuario(),
-                    venta.getIdVenta()
-            );
+                    venta.getIdVenta());
         }
     }
 
@@ -343,22 +359,20 @@ public class VentaServiceImpl implements IVentaService {
         for (DetalleVenta detalle : detalles) {
             productoService.actualizarStock(
                     detalle.getProducto().getIdProducto(),
-                    detalle.getCantidad()
-            );
+                    detalle.getCantidad());
 
             inventarioService.registrarDevolucion(
                     detalle.getProducto().getIdProducto(),
                     detalle.getCantidad(),
                     venta.getUsuario().getIdUsuario(),
-                    "Anulación de venta: " + venta.getCodigoVenta()
-            );
+                    "Anulación de venta: " + venta.getCodigoVenta());
         }
     }
 
     /**
      * Valida que todos los datos de la venta sean correctos.
      *
-     * @param venta Datos de la venta
+     * @param venta    Datos de la venta
      * @param detalles Detalles de la venta
      * @throws ValidationException Si algún dato no es válido
      */
