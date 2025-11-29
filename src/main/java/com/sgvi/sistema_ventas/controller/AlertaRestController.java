@@ -1,6 +1,7 @@
 package com.sgvi.sistema_ventas.controller;
 
 import com.sgvi.sistema_ventas.model.dto.auth.MessageResponse;
+import com.sgvi.sistema_ventas.model.dto.common.AlertaStockResponseDTO;
 import com.sgvi.sistema_ventas.model.entity.AlertaStock;
 import com.sgvi.sistema_ventas.model.enums.NivelUrgencia;
 import com.sgvi.sistema_ventas.model.enums.TipoAlerta;
@@ -65,12 +66,12 @@ public class AlertaRestController {
                     description = "Error interno del servidor"
             )
     })
-    public ResponseEntity<Page<AlertaStock>> obtenerAlertasNoLeidas(Pageable pageable) {
+    public ResponseEntity<Page<AlertaStockResponseDTO>> obtenerAlertasNoLeidas(Pageable pageable) {
         try {
             log.info("GET /api/alertas/no-leidas - Página: {}, Tamaño: {}",
                     pageable.getPageNumber(), pageable.getPageSize());
 
-            Page<AlertaStock> alertas = alertaService.obtenerAlertasNoLeidas(pageable);
+            Page<AlertaStockResponseDTO> alertas = alertaService.obtenerAlertasNoLeidasDTO(pageable);
 
             log.debug("Alertas no leídas encontradas: {}", alertas.getTotalElements());
             return ResponseEntity.ok(alertas);
@@ -103,10 +104,10 @@ public class AlertaRestController {
                     description = "Error interno del servidor"
             )
     })
-    public ResponseEntity<List<AlertaStock>> obtenerAlertasCriticas() {
+    public ResponseEntity<List<AlertaStockResponseDTO>> obtenerAlertasCriticas() {
         try {
             log.info("GET /api/alertas/criticas");
-            List<AlertaStock> alertas = alertaService.obtenerAlertasCriticas();
+            List<AlertaStockResponseDTO> alertas = alertaService.obtenerAlertasCriticasDTO();
 
             log.info("Alertas críticas encontradas: {}", alertas.size());
             return ResponseEntity.ok(alertas);
@@ -238,7 +239,7 @@ public class AlertaRestController {
                         .body(new MessageResponse("La fecha de inicio no puede ser posterior a la fecha fin"));
             }
 
-            Page<AlertaStock> alertas = alertaService.buscarAlertasConFiltros(
+            Page<AlertaStockResponseDTO> alertas = alertaService.buscarAlertasConFiltrosDTO(
                     idProducto, tipoAlerta, nivelUrgencia, leida, fechaInicio, fechaFin, pageable
             );
 
@@ -376,12 +377,11 @@ public class AlertaRestController {
                     description = "Error interno del servidor"
             )
     })
-    public ResponseEntity<Page<AlertaStock>> listarTodas(Pageable pageable) {
+    public ResponseEntity<Page<AlertaStockResponseDTO>> listarTodas(Pageable pageable) {
         try {
             log.info("GET /api/alertas - Listar todas las alertas - Página: {}", pageable.getPageNumber());
 
-            // Usar método específico para obtener TODAS las alertas
-            Page<AlertaStock> alertas = alertaService.obtenerAlertasNoLeidas(pageable);
+            Page<AlertaStockResponseDTO> alertas = alertaService.obtenerTodasLasAlertasDTO(pageable);
 
             log.debug("Total de alertas encontradas: {}", alertas.getTotalElements());
             return ResponseEntity.ok(alertas);
@@ -418,7 +418,7 @@ public class AlertaRestController {
             log.info("GET /api/alertas/resumen");
 
             Map<NivelUrgencia, Long> conteoUrgencia = alertaService.contarAlertasNoLeidasPorUrgencia();
-            List<AlertaStock> criticas = alertaService.obtenerAlertasCriticas();
+            List<AlertaStockResponseDTO> criticas = alertaService.obtenerAlertasCriticasDTO();
 
             long totalNoLeidas = conteoUrgencia.values().stream()
                     .mapToLong(Long::longValue)

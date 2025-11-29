@@ -1,6 +1,6 @@
 package com.sgvi.sistema_ventas.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.sgvi.sistema_ventas.model.enums.NivelUrgencia;
 import com.sgvi.sistema_ventas.model.enums.TipoAlerta;
 import com.sgvi.sistema_ventas.util.converter.NivelUrgenciaConverter;
@@ -28,8 +28,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString
+@ToString(exclude = {"producto", "usuarioNotificado"})
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class AlertaStock {
 
     @Id
@@ -42,9 +43,9 @@ public class AlertaStock {
      * Producto relacionado con la alerta
      * Relación ManyToOne con la entidad Producto
      */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)  
     @JoinColumn(name = "idproducto", nullable = false)
-    @JsonIgnore
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) 
     private Producto producto;
 
     /**

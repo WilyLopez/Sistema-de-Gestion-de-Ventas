@@ -1,6 +1,7 @@
 package com.sgvi.sistema_ventas.service.impl;
 
 import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
+import com.sgvi.sistema_ventas.model.dto.common.AlertaStockResponseDTO;
 import com.sgvi.sistema_ventas.model.entity.AlertaStock;
 import com.sgvi.sistema_ventas.service.interfaces.IAlertaService;
 import com.sgvi.sistema_ventas.model.entity.Producto;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Implementación del servicio de gestión de alertas de stock.
@@ -138,8 +140,16 @@ public class AlertaServiceImpl implements IAlertaService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AlertaStock> obtenerAlertasNoLeidas(Pageable pageable) {
-        return alertaRepository.findByLeidaFalse(pageable);
+    public Page<AlertaStockResponseDTO> obtenerAlertasNoLeidasDTO(Pageable pageable) {
+        Page<AlertaStock> alertas = alertaRepository.findByLeidaFalse(pageable);
+        return alertas.map(AlertaStockResponseDTO::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AlertaStockResponseDTO> obtenerTodasLasAlertasDTO(Pageable pageable) {
+        Page<AlertaStock> alertas = alertaRepository.findAll(pageable);
+        return alertas.map(AlertaStockResponseDTO::fromEntity);
     }
 
     @Override
@@ -150,13 +160,14 @@ public class AlertaServiceImpl implements IAlertaService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AlertaStock> buscarAlertasConFiltros(Long idProducto, TipoAlerta tipoAlerta,
-                                                     NivelUrgencia nivelUrgencia, Boolean leida,
-                                                     LocalDateTime fechaInicio, LocalDateTime fechaFin,
-                                                     Pageable pageable) {
-        return alertaRepository.buscarAlertasConFiltros(
+    public Page<AlertaStockResponseDTO> buscarAlertasConFiltrosDTO(Long idProducto, TipoAlerta tipoAlerta,
+                                                                NivelUrgencia nivelUrgencia, Boolean leida,
+                                                                LocalDateTime fechaInicio, LocalDateTime fechaFin,
+                                                                Pageable pageable) {
+        Page<AlertaStock> alertas = alertaRepository.buscarAlertasConFiltros(
                 idProducto, tipoAlerta, nivelUrgencia, leida, fechaInicio, fechaFin, pageable
         );
+        return alertas.map(AlertaStockResponseDTO::fromEntity);
     }
 
     @Override
@@ -211,8 +222,11 @@ public class AlertaServiceImpl implements IAlertaService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AlertaStock> obtenerAlertasCriticas() {
-        return alertaRepository.findByNivelUrgenciaAndLeidaFalse(NivelUrgencia.CRITICO);
+    public List<AlertaStockResponseDTO> obtenerAlertasCriticasDTO() {
+        List<AlertaStock> alertas = alertaRepository.findByNivelUrgenciaAndLeidaFalse(NivelUrgencia.CRITICO);
+        return alertas.stream()
+                .map(AlertaStockResponseDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -225,6 +239,12 @@ public class AlertaServiceImpl implements IAlertaService {
     @Transactional(readOnly = true)
     public List<AlertaStock> obtenerAlertasPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         return alertaRepository.findAlertasPorPeriodo(fechaInicio, fechaFin);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AlertaStock> obtenerTodasLasAlertas(Pageable pageable) {
+        return alertaRepository.findAll(pageable);
     }
 
     // ========== MÉTODOS PRIVADOS ==========
