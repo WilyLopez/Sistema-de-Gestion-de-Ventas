@@ -103,4 +103,13 @@ public interface IVentaService {
      * @return Cantidad de ventas
      */
     Long contarVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin);
+
+    /**
+     * Obtiene estadísticas de ventas para un vendedor específico en un período.
+     * @param idUsuario ID del vendedor
+     * @param fechaInicio Fecha inicial
+     * @param fechaFin Fecha final
+     * @return Mapa con "totalVendido" y "cantidadVentas"
+     */
+    java.util.Map<String, Object> obtenerEstadisticasVendedor(Long idUsuario, LocalDateTime fechaInicio, LocalDateTime fechaFin);
 }

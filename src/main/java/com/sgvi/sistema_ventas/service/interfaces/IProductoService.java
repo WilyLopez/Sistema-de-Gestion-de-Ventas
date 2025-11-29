@@ -60,12 +60,15 @@ public interface IProductoService {
     Page<Producto> listarTodos(Pageable pageable);
 
     /**
-     * RF-005: Buscar productos por nombre o descripción
-     * @param texto Texto a buscar
-     * @param pageable Parámetros de paginación
-     * @return Página de productos
+     * RF-005: Buscar productos por múltiples criterios.
+     * @param texto Texto a buscar en nombre, código o descripción.
+     * @param idCategoria ID de la categoría para filtrar.
+     * @param precioMin Precio mínimo para filtrar.
+     * @param precioMax Precio máximo para filtrar.
+     * @param pageable Parámetros de paginación.
+     * @return Página de productos que coinciden con los criterios.
      */
-    Page<Producto> buscar(String texto, Pageable pageable);
+    Page<Producto> buscar(String texto, Long idCategoria, BigDecimal precioMin, BigDecimal precioMax, Pageable pageable);
 
     /**
      * RF-005: Filtrar productos por categoría

@@ -1,6 +1,7 @@
 package com.sgvi.sistema_ventas.service.interfaces;
 
 import com.sgvi.sistema_ventas.model.entity.AlertaStock;
+import com.sgvi.sistema_ventas.model.dto.common.AlertaStockResponseDTO;
 import com.sgvi.sistema_ventas.model.enums.NivelUrgencia;
 import com.sgvi.sistema_ventas.model.enums.TipoAlerta;
 import org.springframework.data.domain.Page;
@@ -48,11 +49,18 @@ public interface IAlertaService {
     List<AlertaStock> verificarYGenerarAlertas();
 
     /**
-     * RF-011: Obtener alertas no leídas
+     * RF-011: Obtener alertas no leídas como DTO
      * @param pageable Parámetros de paginación
-     * @return Página de alertas no leídas
+     * @return Página de alertas no leídas como DTO
      */
-    Page<AlertaStock> obtenerAlertasNoLeidas(Pageable pageable);
+    Page<AlertaStockResponseDTO> obtenerAlertasNoLeidasDTO(Pageable pageable);
+
+    /**
+     * RF-011: Obtener todas las alertas como DTO
+     * @param pageable Parámetros de paginación
+     * @return Página de todas las alertas como DTO
+     */
+    Page<AlertaStockResponseDTO> obtenerTodasLasAlertasDTO(Pageable pageable);
 
     /**
      * RF-011: Obtener alertas por producto
@@ -73,10 +81,10 @@ public interface IAlertaService {
      * @param pageable Parámetros de paginación
      * @return Página de alertas filtradas
      */
-    Page<AlertaStock> buscarAlertasConFiltros(Long idProducto, TipoAlerta tipoAlerta,
-                                              NivelUrgencia nivelUrgencia, Boolean leida,
-                                              LocalDateTime fechaInicio, LocalDateTime fechaFin,
-                                              Pageable pageable);
+    Page<AlertaStockResponseDTO> buscarAlertasConFiltrosDTO(Long idProducto, TipoAlerta tipoAlerta,
+                                                       NivelUrgencia nivelUrgencia, Boolean leida,
+                                                       LocalDateTime fechaInicio, LocalDateTime fechaFin,
+                                                       Pageable pageable);
 
     /**
      * RF-011: Marcar alerta como leída
@@ -109,7 +117,7 @@ public interface IAlertaService {
      * RF-011: Obtener alertas críticas no leídas
      * @return Lista de alertas críticas
      */
-    List<AlertaStock> obtenerAlertasCriticas();
+    List<AlertaStockResponseDTO> obtenerAlertasCriticasDTO();
 
     /**
      * Verificar si ya existe alerta similar no leída
@@ -126,4 +134,11 @@ public interface IAlertaService {
      * @return Lista de alertas en el período
      */
     List<AlertaStock> obtenerAlertasPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin);
+
+    /**
+     * Obtener todas las alertas del sistema con paginación
+     * @param pageable Parámetros de paginación
+     * @return Página de todas las alertas
+     */
+    Page<AlertaStock> obtenerTodasLasAlertas(Pageable pageable);
 }
