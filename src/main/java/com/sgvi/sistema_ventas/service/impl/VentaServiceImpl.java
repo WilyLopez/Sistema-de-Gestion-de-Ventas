@@ -3,6 +3,8 @@ package com.sgvi.sistema_ventas.service.impl;
 import com.sgvi.sistema_ventas.exception.ResourceNotFoundException;
 import com.sgvi.sistema_ventas.exception.StockInsuficienteException;
 import com.sgvi.sistema_ventas.exception.VentaException;
+import com.sgvi.sistema_ventas.model.dto.venta.ComprobanteDTO;
+import com.sgvi.sistema_ventas.model.dto.venta.DetalleVentaDTO;
 import com.sgvi.sistema_ventas.model.dto.venta.VentaBusquedaDTO;
 import com.sgvi.sistema_ventas.model.dto.venta.VentaDTO;
 import com.sgvi.sistema_ventas.model.entity.DetalleVenta;
@@ -31,17 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * Implementación del servicio de gestión de ventas.
- * Maneja el ciclo completo de ventas incluyendo transacciones, cálculos
- * automáticos
- * de IGV y actualización de inventario.
- *
- * @author Wilian Lopez
- * @version 1.0
- * @since 2024
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -55,19 +48,8 @@ public class VentaServiceImpl implements IVentaService {
     private final CodeGenerator codeGenerator;
     private final NumberUtil numberUtil;
 
-    /**
-     * Registra una nueva venta en el sistema.
-     * Valida stock, calcula totales, genera código y actualiza inventario.
-     *
-     * @param venta    Datos principales de la venta
-     * @param detalles Lista de productos y cantidades vendidas
-     * @return Venta registrada con todos sus detalles
-     * @throws ValidationException        Si los datos de la venta no son válidos
-     * @throws StockInsuficienteException Si algún producto no tiene stock
-     *                                    suficiente
-     */
     @Override
-    public Venta registrarVenta(Venta venta, List<DetalleVenta> detalles) {
+    public VentaDTO registrarVenta(Venta venta, List<DetalleVenta> detalles) {
         log.info("Registrando nueva venta para cliente ID: {}", venta.getCliente().getIdCliente());
 
         validarVenta(venta, detalles);
@@ -91,57 +73,42 @@ public class VentaServiceImpl implements IVentaService {
         procesarDetallesVenta(ventaGuardada, detalles);
 
         log.info("Venta registrada exitosamente: {}", ventaGuardada.getCodigoVenta());
-        return ventaGuardada;
+        return convertirAVentaDTO(ventaGuardada);
     }
 
-    /**
-     * Obtiene una venta por su identificador.
-     *
-     * @param id Identificador de la venta
-     * @return Venta encontrada
-     * @throws ResourceNotFoundException Si la venta no existe
-     */
     @Override
     @Transactional(readOnly = true)
-    public Venta obtenerPorId(Long id) {
+    public VentaDTO obtenerPorId(Long id) {
+        Venta venta = ventaRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Constants.MSG_RECURSO_NO_ENCONTRADO + " con ID: " + id));
+        return convertirAVentaDTO(venta);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Venta obtenerEntidadPorId(Long id) {
         return ventaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Constants.MSG_RECURSO_NO_ENCONTRADO + " con ID: " + id));
     }
 
-    /**
-     * Obtiene una venta por su código único.
-     *
-     * @param codigoVenta Código único de la venta
-     * @return Venta encontrada
-     * @throws ResourceNotFoundException Si la venta no existe
-     */
     @Override
     @Transactional(readOnly = true)
-    public Venta obtenerPorCodigo(String codigoVenta) {
-        return ventaRepository.findByCodigoVentaWithDetails(codigoVenta)
+    public VentaDTO obtenerPorCodigo(String codigoVenta) {
+        Venta venta = ventaRepository.findByCodigoVentaWithDetails(codigoVenta)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Constants.MSG_RECURSO_NO_ENCONTRADO + " con código: " + codigoVenta));
+        return convertirAVentaDTO(venta);
     }
 
-    /**
-     * Lista todas las ventas con paginación.
-     *
-     * @param pageable Configuración de paginación
-     * @return Página de ventas
-     */
     @Override
     @Transactional(readOnly = true)
-    public Page<Venta> listarTodas(Pageable pageable) {
-        return ventaRepository.findAll(pageable);
+    public Page<VentaDTO> listarTodas(Pageable pageable) {
+        Page<Venta> ventas = ventaRepository.findAll(pageable);
+        return ventas.map(this::convertirAVentaDTO);
     }
 
-    /**
-     * Busca ventas aplicando múltiples filtros opcionales.
-     *
-     * 
-     * @return Página de ventas que coinciden con los filtros
-     */
     @Override
     @Transactional(readOnly = true)
     public Page<VentaDTO> buscarVentasDTOConFiltros(VentaBusquedaDTO filtros) {
@@ -165,15 +132,6 @@ public class VentaServiceImpl implements IVentaService {
         return resultados.map(this::mapToVentaDTO);
     }
 
-    /**
-     * Anula una venta si cumple las condiciones establecidas.
-     * Revierte el stock de todos los productos y registra la devolución en
-     * inventario.
-     *
-     * @param idVenta ID de la venta a anular
-     * @param motivo  Motivo de la anulación
-     * @throws VentaException Si la venta no puede anularse
-     */
     @Override
     public void anularVenta(Long idVenta, String motivo) {
         log.info("Anulando venta ID: {}", idVenta);
@@ -184,7 +142,7 @@ public class VentaServiceImpl implements IVentaService {
                     Constants.HORAS_PLAZO_ANULACION_VENTA + " horas");
         }
 
-        Venta venta = obtenerPorId(idVenta);
+        Venta venta = obtenerEntidadPorId(idVenta);
 
         venta.setEstado(EstadoVenta.ANULADO);
         venta.setObservaciones("ANULADA: " + motivo);
@@ -197,13 +155,6 @@ public class VentaServiceImpl implements IVentaService {
         log.info("Venta anulada exitosamente: {}", venta.getCodigoVenta());
     }
 
-    /**
-     * Verifica si una venta puede ser anulada.
-     * Una venta puede anularse si está en estado PAGADO y tiene menos de 24 horas.
-     *
-     * @param idVenta ID de la venta
-     * @return true si la venta puede anularse
-     */
     @Override
     @Transactional(readOnly = true)
     public boolean puedeAnularse(Long idVenta) {
@@ -212,13 +163,6 @@ public class VentaServiceImpl implements IVentaService {
         return ventaRepository.findVentaAnulable(idVenta, fechaLimite).isPresent();
     }
 
-    /**
-     * Calcula subtotal, IGV y total de una venta.
-     * Utiliza la tasa de IGV definida en las constantes del sistema.
-     *
-     * @param detalles Lista de detalles de la venta
-     * @return Array con [subtotal, igv, total]
-     */
     @Override
     public BigDecimal[] calcularTotales(List<DetalleVenta> detalles) {
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -238,51 +182,24 @@ public class VentaServiceImpl implements IVentaService {
         };
     }
 
-    /**
-     * Genera un código único para la venta.
-     * Formato: V-YYYYMMDD-NNNNN
-     *
-     * @return Código generado
-     */
     @Override
     public String generarCodigoVenta() {
         long count = ventaRepository.count();
         return codeGenerator.generarCodigoVenta(count);
     }
 
-    /**
-     * Obtiene todas las ventas de un periodo específico.
-     *
-     * @param fechaInicio Fecha inicial del periodo
-     * @param fechaFin    Fecha final del periodo
-     * @return Lista de ventas en el periodo
-     */
     @Override
     @Transactional(readOnly = true)
     public List<Venta> obtenerVentasPorPeriodo(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         return ventaRepository.findVentasPorPeriodo(fechaInicio, fechaFin);
     }
 
-    /**
-     * Calcula el total vendido en un periodo.
-     *
-     * @param fechaInicio Fecha inicial del periodo
-     * @param fechaFin    Fecha final del periodo
-     * @return Suma total de ventas en el periodo
-     */
     @Override
     @Transactional(readOnly = true)
     public BigDecimal obtenerTotalVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         return ventaRepository.getTotalVentasPorPeriodo(fechaInicio, fechaFin);
     }
 
-    /**
-     * Cuenta el número de ventas realizadas en un periodo.
-     *
-     * @param fechaInicio Fecha inicial del periodo
-     * @param fechaFin    Fecha final del periodo
-     * @return Cantidad de ventas en el periodo
-     */
     @Override
     @Transactional(readOnly = true)
     public Long contarVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
@@ -307,13 +224,6 @@ public class VentaServiceImpl implements IVentaService {
         return estadisticas;
     }
 
-    /**
-     * Verifica que todos los productos tengan stock suficiente.
-     *
-     * @param detalles Lista de productos a verificar
-     * @throws StockInsuficienteException Si algún producto no tiene stock
-     *                                    suficiente
-     */
     private void verificarStockDisponible(List<DetalleVenta> detalles) {
         for (DetalleVenta detalle : detalles) {
             if (!productoService.verificarStock(detalle.getProducto().getIdProducto(), detalle.getCantidad())) {
@@ -325,12 +235,6 @@ public class VentaServiceImpl implements IVentaService {
         }
     }
 
-    /**
-     * Procesa y guarda los detalles de la venta, actualizando stock e inventario.
-     *
-     * @param venta    Venta guardada
-     * @param detalles Lista de detalles a procesar
-     */
     private void procesarDetallesVenta(Venta venta, List<DetalleVenta> detalles) {
         for (DetalleVenta detalle : detalles) {
             detalle.setVenta(venta);
@@ -349,11 +253,6 @@ public class VentaServiceImpl implements IVentaService {
         }
     }
 
-    /**
-     * Revierte el stock de todos los productos de una venta anulada.
-     *
-     * @param venta Venta anulada
-     */
     private void revertirStockVenta(Venta venta) {
         List<DetalleVenta> detalles = detalleVentaRepository.findByVentaIdVenta(venta.getIdVenta());
         for (DetalleVenta detalle : detalles) {
@@ -369,13 +268,6 @@ public class VentaServiceImpl implements IVentaService {
         }
     }
 
-    /**
-     * Valida que todos los datos de la venta sean correctos.
-     *
-     * @param venta    Datos de la venta
-     * @param detalles Detalles de la venta
-     * @throws ValidationException Si algún dato no es válido
-     */
     private void validarVenta(Venta venta, List<DetalleVenta> detalles) {
         if (venta.getCliente() == null || venta.getCliente().getIdCliente() == null) {
             throw new ValidationException("El cliente es obligatorio");
@@ -426,9 +318,6 @@ public class VentaServiceImpl implements IVentaService {
                 .build();
     }
 
-    /**
-     * Método auxiliar para convertir String a EstadoVenta de forma segura
-     */
     private EstadoVenta convertirEstadoVenta(String valor) {
         if (valor == null) {
             return null;
@@ -437,13 +326,10 @@ public class VentaServiceImpl implements IVentaService {
             return EstadoVenta.fromValor(valor.toLowerCase());
         } catch (IllegalArgumentException e) {
             log.warn("Valor no válido para EstadoVenta: {}, usando valor por defecto", valor);
-            return EstadoVenta.PENDIENTE; // Valor por defecto
+            return EstadoVenta.PENDIENTE; 
         }
     }
 
-    /**
-     * Método auxiliar para convertir String a TipoComprobante de forma segura
-     */
     private TipoComprobante convertirTipoComprobante(String valor) {
         if (valor == null) {
             return null;
@@ -452,8 +338,50 @@ public class VentaServiceImpl implements IVentaService {
             return TipoComprobante.fromValor(valor.toLowerCase());
         } catch (IllegalArgumentException e) {
             log.warn("Valor no válido para TipoComprobante: {}, usando valor por defecto", valor);
-            return TipoComprobante.BOLETA; // Valor por defecto
+            return TipoComprobante.BOLETA; 
         }
     }
 
+    private VentaDTO convertirAVentaDTO(Venta venta) {
+        return VentaDTO.builder()
+                .idVenta(venta.getIdVenta())
+                .codigoVenta(venta.getCodigoVenta())
+                .idCliente(venta.getCliente().getIdCliente())
+                .nombreCliente(venta.getCliente().getNombre() + " " + venta.getCliente().getApellido())
+                .idUsuario(venta.getUsuario().getIdUsuario())
+                .nombreUsuario(venta.getUsuario().getNombre() + " " + venta.getUsuario().getApellido())
+                .fechaCreacion(venta.getFechaCreacion())
+                .subtotal(venta.getSubtotal())
+                .igv(venta.getIgv())
+                .total(venta.getTotal())
+                .idMetodoPago(venta.getMetodoPago().getIdMetodoPago())
+                .nombreMetodoPago(venta.getMetodoPago().getNombre())
+                .estado(venta.getEstado())
+                .tipoComprobante(venta.getTipoComprobante())
+                .observaciones(venta.getObservaciones())
+                .detalles(convertirDetallesAVentaDTO(venta.getDetallesVenta()))
+                .build();
+    }
+
+    private List<DetalleVentaDTO> convertirDetallesAVentaDTO(List<DetalleVenta> detalles) {
+        if (detalles == null || detalles.isEmpty()) {
+            return List.of();
+        }
+
+        return detalles.stream()
+                .map(detalle -> DetalleVentaDTO.builder()
+                        .idDetalle(detalle.getIdDetalle())
+                        .idProducto(detalle.getProducto().getIdProducto())
+                        .codigoProducto(detalle.getProducto().getCodigo())
+                        .nombreProducto(detalle.getProducto().getNombre())
+                        .marca(detalle.getProducto().getMarca())
+                        .talla(detalle.getProducto().getTalla())
+                        .color(detalle.getProducto().getColor())
+                        .cantidad(detalle.getCantidad())
+                        .precioUnitario(detalle.getPrecioUnitario())
+                        .descuento(detalle.getDescuento())
+                        .subtotal(detalle.getSubtotal())
+                        .build())
+                .collect(Collectors.toList());
+    }
 }

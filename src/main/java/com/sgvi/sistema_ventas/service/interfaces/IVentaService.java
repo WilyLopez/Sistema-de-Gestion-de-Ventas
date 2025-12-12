@@ -27,28 +27,30 @@ public interface IVentaService {
      * @param detalles Lista de detalles de la venta
      * @return Venta creada y procesada
      */
-    Venta registrarVenta(Venta venta, List<DetalleVenta> detalles);
+    VentaDTO registrarVenta(Venta venta, List<DetalleVenta> detalles);
 
     /**
      * RF-008: Obtener venta por ID
      * @param id ID de la venta
      * @return Venta encontrada
      */
-    Venta obtenerPorId(Long id);
+    VentaDTO obtenerPorId(Long id);
+
+    Venta obtenerEntidadPorId(Long id);
 
     /**
      * RF-008: Obtener venta por código
      * @param codigoVenta Código de la venta
      * @return Venta encontrada
      */
-    Venta obtenerPorCodigo(String codigoVenta);
+    VentaDTO obtenerPorCodigo(String codigoVenta);
 
     /**
      * RF-008: Listar todas las ventas
      * @param pageable Parámetros de paginación
      * @return Página de ventas
      */
-    Page<Venta> listarTodas(Pageable pageable);
+    Page<VentaDTO> listarTodas(Pageable pageable);
 
 
     Page<VentaDTO> buscarVentasDTOConFiltros(VentaBusquedaDTO filtros);

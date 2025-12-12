@@ -77,7 +77,7 @@ public class DevolucionRestController {
         log.info("POST /api/devoluciones - Crear devolución para venta ID: {}", request.getIdVenta());
 
         // Obtener entidades
-        Venta venta = ventaService.obtenerPorId(request.getIdVenta());
+        Venta venta = ventaService.obtenerEntidadPorId(request.getIdVenta());
         Usuario usuario = usuarioService.obtenerEntidadPorId(request.getIdUsuario());
 
         // Construir entidad Devolucion
@@ -290,7 +290,7 @@ public class DevolucionRestController {
 
         log.info("GET /api/devoluciones/verificar-plazo/{} - Verificar plazo", idVenta);
 
-        Venta venta = ventaService.obtenerPorId(idVenta);
+        Venta venta = ventaService.obtenerEntidadPorId(idVenta);
         boolean dentroPlazo = devolucionService.estaDentroPlazo(idVenta);
 
         LocalDateTime fechaVenta = venta.getFechaCreacion();

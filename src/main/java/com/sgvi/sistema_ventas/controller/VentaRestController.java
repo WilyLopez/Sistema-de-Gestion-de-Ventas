@@ -32,14 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Controlador REST para gestión de ventas.
- * Implementa requisitos RF-007, RF-008, RF-009 del SRS.
- *
- * @author Wilian Lopez
- * @version 1.0
- * @since 2024
- */
 @RestController
 @RequestMapping("/api/ventas")
 @RequiredArgsConstructor
@@ -61,14 +53,6 @@ public class VentaRestController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    /**
-     * RF-007: Registrar nueva venta con sus detalles.
-     * Calcula automáticamente subtotal, IGV y total.
-     * Actualiza stock de productos automáticamente.
-     *
-     * @param createDTO DTO con datos de la venta y detalles
-     * @return Venta creada con código generado
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'VENDEDOR')")
     @Operation(
@@ -79,7 +63,7 @@ public class VentaRestController {
             @ApiResponse(
                     responseCode = "201",
                     description = "Venta registrada exitosamente",
-                    content = @Content(schema = @Schema(implementation = Venta.class))
+                    content = @Content(schema = @Schema(implementation = VentaDTO.class))
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -107,16 +91,13 @@ public class VentaRestController {
             Venta venta = convertirAVenta(createDTO);
             List<DetalleVenta> detalles = convertirADetalles(createDTO);
 
-            Venta ventaCreada = ventaService.registrarVenta(venta, detalles);
-
-            // CONVERTIR A DTO ANTES DE DEVOLVER - ESTO EVITA EL LAZY INITIALIZATION
-            VentaDTO ventaDTO = convertirAVentaDTO(ventaCreada);
+            VentaDTO ventaCreada = ventaService.registrarVenta(venta, detalles);
 
             log.info("Venta registrada exitosamente: {}", ventaCreada.getCodigoVenta());
 
             return ResponseEntity
                     .status(HttpStatus.CREATED)
-                    .body(ventaDTO); // ← Devuelve el DTO, no la entidad
+                    .body(ventaCreada);
 
         } catch (IllegalArgumentException e) {
             log.warn("Datos inválidos al registrar venta: {}", e.getMessage());
@@ -137,12 +118,7 @@ public class VentaRestController {
                     .body(new MessageResponse("Error al registrar venta. Intente nuevamente"));
         }
     }
-    /**
-     * RF-008: Obtener venta por ID con todos sus detalles.
-     *
-     * @param id ID de la venta
-     * @return Venta encontrada
-     */
+
     @GetMapping("/{id}")
     @Operation(
             summary = "Obtener venta por ID",
@@ -152,7 +128,7 @@ public class VentaRestController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Venta encontrada",
-                    content = @Content(schema = @Schema(implementation = Venta.class))
+                    content = @Content(schema = @Schema(implementation = VentaDTO.class))
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -163,8 +139,7 @@ public class VentaRestController {
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
         try {
             log.info("GET /api/ventas/{}", id);
-            Venta venta = ventaService.obtenerPorId(id);
-            VentaDTO ventaDTO = convertirAVentaDTO(venta); // ← Convertir a DTO
+            VentaDTO ventaDTO = ventaService.obtenerPorId(id);
             return ResponseEntity.ok(ventaDTO);
 
         } catch (Exception e) {
@@ -175,13 +150,6 @@ public class VentaRestController {
         }
     }
 
-
-    /**
-     * RF-008: Obtener venta por código único.
-     *
-     * @param codigo Código de la venta
-     * @return Venta encontrada
-     */
     @GetMapping("/codigo/{codigoVenta}")
     @Operation(
             summary = "Buscar por código",
@@ -190,7 +158,8 @@ public class VentaRestController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Venta encontrada"
+                    description = "Venta encontrada",
+                    content = @Content(schema = @Schema(implementation = VentaDTO.class))
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -200,8 +169,7 @@ public class VentaRestController {
     public ResponseEntity<?> obtenerPorCodigo(@PathVariable String codigoVenta) {
         try {
             log.info("GET /api/ventas/codigo/{}", codigoVenta);
-            Venta venta = ventaService.obtenerPorCodigo(codigoVenta);
-            VentaDTO ventaDTO = convertirAVentaDTO(venta); // ← Convertir a DTO
+            VentaDTO ventaDTO = ventaService.obtenerPorCodigo(codigoVenta);
             return ResponseEntity.ok(ventaDTO);
 
         } catch (Exception e) {
@@ -212,12 +180,6 @@ public class VentaRestController {
         }
     }
 
-    /**
-     * RF-008: Listar todas las ventas con paginación.
-     *
-     * @param pageable Parámetros de paginación (page, size, sort)
-     * @return Página de ventas
-     */
     @GetMapping
     @Operation(
             summary = "Listar ventas",
@@ -229,16 +191,12 @@ public class VentaRestController {
                     description = "Lista de ventas obtenida exitosamente"
             )
     })
-    public ResponseEntity<Page<Venta>> listarTodas(Pageable pageable) {
+    public ResponseEntity<Page<VentaDTO>> listarTodas(Pageable pageable) {
         log.info("GET /api/ventas - Listar ventas (página: {})", pageable.getPageNumber());
-        Page<Venta> ventas = ventaService.listarTodas(pageable);
+        Page<VentaDTO> ventas = ventaService.listarTodas(pageable);
         return ResponseEntity.ok(ventas);
     }
 
-    /**
-     * RF-008: Buscar ventas con múltiples filtros.
-     * Todos los parámetros son opcionales.
-     */
     @GetMapping("/buscar")
     @Operation(
             summary = "Buscar ventas con filtros",
@@ -256,16 +214,6 @@ public class VentaRestController {
         return ResponseEntity.ok(ventas);
     }
 
-
-    /**
-     * RF-009: Anular una venta.
-     * Solo permite anular ventas con menos de 24 horas y estado PAGADO.
-     * Restaura automáticamente el stock de productos.
-     *
-     * @param id ID de la venta
-     * @param request DTO con motivo de anulación
-     * @return Respuesta sin contenido
-     */
     @PutMapping("/{id}/anular")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -318,13 +266,6 @@ public class VentaRestController {
         }
     }
 
-    /**
-     * RF-009: Verificar si una venta puede ser anulada.
-     * Útil para habilitar/deshabilitar botón de anular en frontend.
-     *
-     * @param id ID de la venta
-     * @return Objeto con booleano indicando si puede anularse
-     */
     @GetMapping("/{id}/puede-anularse")
     @Operation(
             summary = "Verificar si puede anularse",
@@ -358,13 +299,6 @@ public class VentaRestController {
         }
     }
 
-    /**
-     * RF-014: Obtener ventas por período de fechas.
-     *
-     * @param fechaInicio Fecha inicial
-     * @param fechaFin Fecha final
-     * @return Lista de ventas en el período
-     */
     @GetMapping("/periodo")
     @Operation(
             summary = "Ventas por período",
@@ -380,13 +314,6 @@ public class VentaRestController {
         return ResponseEntity.ok(ventas);
     }
 
-    /**
-     * RF-014: Obtener estadísticas de ventas por período.
-     *
-     * @param fechaInicio Fecha inicial
-     * @param fechaFin Fecha final
-     * @return Mapa con estadísticas (total, cantidad)
-     */
     @GetMapping("/estadisticas")
     @Operation(
             summary = "Estadísticas de ventas",
@@ -405,10 +332,6 @@ public class VentaRestController {
         return ResponseEntity.ok(estadisticas);
     }
 
-    /**
-     * Obtiene estadísticas de ventas para un vendedor específico.
-     * Solo accesible por el propio vendedor o un administrador.
-     */
     @GetMapping("/vendedor/estadisticas")
     @PreAuthorize("#idUsuario == authentication.principal.id or hasRole('ADMINISTRADOR')")
     @Operation(
@@ -426,12 +349,6 @@ public class VentaRestController {
         return ResponseEntity.ok(estadisticas);
     }
 
-    /**
-     * Convierte VentaCreateDTO a entidad Venta.
-     *
-     * @param createDTO DTO de creación
-     * @return Entidad Venta
-     */
     private Venta convertirAVenta(VentaCreateDTO createDTO) {
         Venta venta = new Venta();
 
@@ -458,13 +375,6 @@ public class VentaRestController {
         return venta;
     }
 
-    /**
-     * Convierte lista de DetalleVentaDTO a entidades DetalleVenta.
-     * Calcula subtotales de cada detalle.
-     *
-     * @param createDTO DTO de creación
-     * @return Lista de DetalleVenta
-     */
     private List<DetalleVenta> convertirADetalles(VentaCreateDTO createDTO) {
         return createDTO.getDetalles().stream()
                 .map(detalleDTO -> {
@@ -472,7 +382,6 @@ public class VentaRestController {
 
                     DetalleVenta detalle = new DetalleVenta();
 
-                    // Obtener producto completo desde repo
                     Producto producto = productoRepository.findById(detalleDTO.getIdProducto())
                             .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
@@ -486,55 +395,4 @@ public class VentaRestController {
                 })
                 .collect(Collectors.toList());
     }
-
-    /**
-     * Convierte entidad Venta a VentaDTO para evitar problemas de serialización.
-     */
-    private VentaDTO convertirAVentaDTO(Venta venta) {
-        return VentaDTO.builder()
-                .idVenta(venta.getIdVenta())
-                .codigoVenta(venta.getCodigoVenta())
-                .idCliente(venta.getCliente().getIdCliente())
-                .nombreCliente(venta.getCliente().getNombre() + " " + venta.getCliente().getApellido())
-                .idUsuario(venta.getUsuario().getIdUsuario())
-                .nombreUsuario(venta.getUsuario().getNombre() + " " + venta.getUsuario().getApellido())
-                .fechaCreacion(venta.getFechaCreacion())
-                .subtotal(venta.getSubtotal())
-                .igv(venta.getIgv())
-                .total(venta.getTotal())
-                .idMetodoPago(venta.getMetodoPago().getIdMetodoPago())
-                .nombreMetodoPago(venta.getMetodoPago().getNombre())
-                .estado(venta.getEstado())
-                .tipoComprobante(venta.getTipoComprobante())
-                .observaciones(venta.getObservaciones())
-                .detalles(convertirDetallesAVentaDTO(venta.getDetallesVenta()))
-                //.comprobante(convertirComprobanteADTO(venta.getComprobante())) // Si tienes comprobante
-                .build();
-    }
-
-    /**
-     * Convierte lista de DetalleVenta a DetalleVentaDTO.
-     */
-    private List<DetalleVentaDTO> convertirDetallesAVentaDTO(List<DetalleVenta> detalles) {
-        if (detalles == null || detalles.isEmpty()) {
-            return List.of();
-        }
-
-        return detalles.stream()
-                .map(detalle -> DetalleVentaDTO.builder()
-                        .idDetalle(detalle.getIdDetalle())
-                        .idProducto(detalle.getProducto().getIdProducto())
-                        .codigoProducto(detalle.getProducto().getCodigo())
-                        .nombreProducto(detalle.getProducto().getNombre())
-                        .marca(detalle.getProducto().getMarca())
-                        .talla(detalle.getProducto().getTalla())
-                        .color(detalle.getProducto().getColor())
-                        .cantidad(detalle.getCantidad())
-                        .precioUnitario(detalle.getPrecioUnitario())
-                        .descuento(detalle.getDescuento())
-                        .subtotal(detalle.getSubtotal())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
 }
