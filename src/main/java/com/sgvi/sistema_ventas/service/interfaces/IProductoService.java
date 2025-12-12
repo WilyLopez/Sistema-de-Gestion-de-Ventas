@@ -1,5 +1,6 @@
 package com.sgvi.sistema_ventas.service.interfaces;
 
+import com.sgvi.sistema_ventas.model.dto.producto.ProductoDTO;
 import com.sgvi.sistema_ventas.model.entity.Producto;
 import com.sgvi.sistema_ventas.model.enums.Genero;
 import org.springframework.data.domain.Page;
@@ -57,7 +58,7 @@ public interface IProductoService {
      * @param pageable Parámetros de paginación
      * @return Página de productos
      */
-    Page<Producto> listarTodos(Pageable pageable);
+    Page<ProductoDTO> listarTodos(Pageable pageable);
 
     /**
      * RF-005: Buscar productos por múltiples criterios.

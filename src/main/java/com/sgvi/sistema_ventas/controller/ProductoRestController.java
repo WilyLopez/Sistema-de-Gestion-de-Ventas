@@ -3,6 +3,7 @@ package com.sgvi.sistema_ventas.controller;
 import com.sgvi.sistema_ventas.model.dto.auth.MessageResponse;
 import com.sgvi.sistema_ventas.model.dto.producto.ActualizarStockRequest;
 import com.sgvi.sistema_ventas.model.dto.producto.ProductoCreateDTO;
+import com.sgvi.sistema_ventas.model.dto.producto.ProductoDTO;
 import com.sgvi.sistema_ventas.model.dto.producto.ProductoUpdateDTO;
 import com.sgvi.sistema_ventas.model.entity.Producto;
 import com.sgvi.sistema_ventas.model.enums.Genero;
@@ -28,14 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de productos.
- * Implementa requisito RF-005 del SRS: CRUD de Productos.
- *
- * @author Wilian Lopez
- * @version 1.0
- * @since 2024
- */
 @RestController
 @RequestMapping("/api/productos")
 @RequiredArgsConstructor
@@ -45,13 +38,6 @@ public class ProductoRestController {
 
     private final IProductoService productoService;
 
-    /**
-     * RF-005: Crear nuevo producto.
-     * Valida código único, precios y stock.
-     *
-     * @param createDTO DTO con datos del producto
-     * @return Producto creado
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'VENDEDOR')")
     @Operation(
@@ -119,14 +105,6 @@ public class ProductoRestController {
         }
     }
 
-    /**
-     * RF-005: Actualizar producto existente.
-     * Permite actualización parcial de campos.
-     *
-     * @param id ID del producto
-     * @param updateDTO DTO con datos a actualizar
-     * @return Producto actualizado
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'VENDEDOR')")
     @Operation(
@@ -185,13 +163,6 @@ public class ProductoRestController {
         }
     }
 
-    /**
-     * RF-005: Eliminar producto (soft delete).
-     * Marca el producto como inactivo sin eliminarlo físicamente.
-     *
-     * @param id ID del producto
-     * @return Respuesta sin contenido
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -230,12 +201,6 @@ public class ProductoRestController {
         }
     }
 
-    /**
-     * RF-005: Obtener producto por ID.
-     *
-     * @param id ID del producto
-     * @return Producto encontrado
-     */
     @GetMapping("/{id}")
     @Operation(
             summary = "Obtener producto por ID",
@@ -265,12 +230,6 @@ public class ProductoRestController {
         }
     }
 
-    /**
-     * RF-005: Obtener producto por código único.
-     *
-     * @param codigo Código del producto
-     * @return Producto encontrado
-     */
     @GetMapping("/codigo/{codigo}")
     @Operation(
             summary = "Buscar por código",
@@ -300,31 +259,17 @@ public class ProductoRestController {
         }
     }
 
-    /**
-     * RF-005: Listar todos los productos con paginación.
-     *
-     * @param pageable Parámetros de paginación
-     * @return Página de productos
-     */
     @GetMapping
     @Operation(
             summary = "Listar productos",
             description = "Lista todos los productos con paginación. Ejemplo: ?page=0&size=20&sort=nombre,asc"
     )
-    public ResponseEntity<Page<Producto>> listarTodos(Pageable pageable) {
+    public ResponseEntity<Page<ProductoDTO>> listarTodos(Pageable pageable) {
         log.info("GET /api/productos - Listar productos (página: {})", pageable.getPageNumber());
-        Page<Producto> productos = productoService.listarTodos(pageable);
+        Page<ProductoDTO> productos = productoService.listarTodos(pageable);
         return ResponseEntity.ok(productos);
     }
 
-    /**
-     * RF-005: Buscar productos por texto.
-     * Busca en nombre, código y descripción.
-     *
-     * @param texto Texto a buscar
-     * @param pageable Parámetros de paginación
-     * @return Página de productos que coinciden
-     */
     @GetMapping("/buscar")
     @Operation(
             summary = "Buscar productos con filtros",
@@ -344,13 +289,6 @@ public class ProductoRestController {
         return ResponseEntity.ok(productos);
     }
 
-    /**
-     * RF-005: Filtrar productos por categoría.
-     *
-     * @param idCategoria ID de la categoría
-     * @param pageable Parámetros de paginación
-     * @return Página de productos de la categoría
-     */
     @GetMapping("/categoria/{idCategoria}")
     @Operation(
             summary = "Filtrar por categoría",
@@ -365,13 +303,6 @@ public class ProductoRestController {
         return ResponseEntity.ok(productos);
     }
 
-    /**
-     * RF-005: Filtrar productos por género.
-     *
-     * @param genero Género del producto
-     * @param pageable Parámetros de paginación
-     * @return Página de productos del género
-     */
     @GetMapping("/genero/{genero}")
     @Operation(
             summary = "Filtrar por género",
@@ -386,13 +317,6 @@ public class ProductoRestController {
         return ResponseEntity.ok(productos);
     }
 
-    /**
-     * RF-005: Filtrar productos por marca.
-     *
-     * @param marca Marca del producto
-     * @param pageable Parámetros de paginación
-     * @return Página de productos de la marca
-     */
     @GetMapping("/marca/{marca}")
     @Operation(
             summary = "Filtrar por marca",
@@ -407,14 +331,6 @@ public class ProductoRestController {
         return ResponseEntity.ok(productos);
     }
 
-    /**
-     * RF-005: Filtrar productos por rango de precio.
-     *
-     * @param precioMin Precio mínimo
-     * @param precioMax Precio máximo
-     * @param pageable Parámetros de paginación
-     * @return Página de productos en el rango
-     */
     @GetMapping("/precio")
     @Operation(
             summary = "Filtrar por rango de precio",
@@ -430,12 +346,6 @@ public class ProductoRestController {
         return ResponseEntity.ok(productos);
     }
 
-    /**
-     * RF-011: Obtener productos con stock bajo.
-     * Lista productos con stock <= stock mínimo.
-     *
-     * @return Lista de productos con stock bajo
-     */
     @GetMapping("/stock-bajo")
     @Operation(
             summary = "Productos con stock bajo",
@@ -447,12 +357,6 @@ public class ProductoRestController {
         return ResponseEntity.ok(productos);
     }
 
-    /**
-     * RF-011: Obtener productos agotados.
-     * Lista productos con stock = 0.
-     *
-     * @return Lista de productos agotados
-     */
     @GetMapping("/agotados")
     @Operation(
             summary = "Productos agotados",
@@ -464,14 +368,6 @@ public class ProductoRestController {
         return ResponseEntity.ok(productos);
     }
 
-    /**
-     * RF-012: Actualizar stock de producto manualmente.
-     * Registra movimiento de inventario (entrada/salida/ajuste).
-     *
-     * @param id ID del producto
-     * @param request DTO con cantidad, tipo de movimiento y motivo
-     * @return Producto con stock actualizado
-     */
     @PatchMapping("/{id}/stock")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(
@@ -544,13 +440,6 @@ public class ProductoRestController {
         }
     }
 
-    /**
-     * RF-012: Verificar disponibilidad de stock.
-     *
-     * @param id ID del producto
-     * @param cantidad Cantidad requerida
-     * @return Objeto con disponibilidad y stock actual
-     */
     @GetMapping("/{id}/verificar-stock")
     @Operation(
             summary = "Verificar disponibilidad de stock",
@@ -581,12 +470,6 @@ public class ProductoRestController {
         }
     }
 
-    /**
-     * Obtener margen de ganancia de un producto.
-     *
-     * @param id ID del producto
-     * @return Margen de ganancia en porcentaje
-     */
     @GetMapping("/{id}/margen-ganancia")
     @Operation(
             summary = "Calcular margen de ganancia",
@@ -613,12 +496,6 @@ public class ProductoRestController {
         }
     }
 
-    /**
-     * Convierte ProductoCreateDTO a entidad Producto.
-     *
-     * @param createDTO DTO de creación
-     * @return Entidad Producto
-     */
     private Producto convertirAProducto(ProductoCreateDTO createDTO) {
         Producto producto = new Producto();
         producto.setCodigo(createDTO.getCodigo());
@@ -639,12 +516,6 @@ public class ProductoRestController {
         return producto;
     }
 
-    /**
-     * Aplica actualización parcial de ProductoUpdateDTO a entidad Producto.
-     *
-     * @param producto Producto existente
-     * @param updateDTO DTO con campos a actualizar
-     */
     private void aplicarActualizacion(Producto producto, ProductoUpdateDTO updateDTO) {
         if (updateDTO.getNombre() != null) {
             producto.setNombre(updateDTO.getNombre());

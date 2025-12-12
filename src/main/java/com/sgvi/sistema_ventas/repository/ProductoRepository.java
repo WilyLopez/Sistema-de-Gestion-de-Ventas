@@ -1,6 +1,9 @@
 package com.sgvi.sistema_ventas.repository;
 
+import com.sgvi.sistema_ventas.model.dto.producto.ProductoDTO;
 import com.sgvi.sistema_ventas.model.entity.Producto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +17,19 @@ import java.util.Optional;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long>, JpaSpecificationExecutor<Producto> {
 
+    @Query("""
+            SELECT new com.sgvi.sistema_ventas.model.dto.producto.ProductoDTO(
+                p.idProducto, p.codigo, p.nombre, p.marca, p.talla, p.color,
+                p.material, p.genero, p.precioCompra, p.precioVenta, p.stock,
+                p.stockMinimo, p.descripcion, p.imagenUrl, p.estado, c.idCategoria,
+                c.nombre, pv.idProveedor, pv.razonSocial, p.fechaCreacion
+            )
+            FROM Producto p
+            LEFT JOIN Categoria c ON p.idCategoria = c.idCategoria
+            LEFT JOIN Proveedor pv ON p.idProveedor = pv.idProveedor
+            """)
+    Page<ProductoDTO> findAllProjectedBy(Pageable pageable);
+    
     // Búsquedas por identificadores
     Optional<Producto> findByCodigo(String codigo);
     boolean existsByCodigo(String codigo);
