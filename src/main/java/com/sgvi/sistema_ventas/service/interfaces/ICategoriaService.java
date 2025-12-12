@@ -79,6 +79,6 @@ public interface ICategoriaService {
      */
     boolean existeNombre(String nombre);
 
-    List<CategoriaDTO> listarTodasConCantidad();
+    Page<CategoriaDTO> listarTodasConCantidad(Pageable pageable);
     List<CategoriaDTO> buscarPorNombreConCantidad(String nombre);
 }

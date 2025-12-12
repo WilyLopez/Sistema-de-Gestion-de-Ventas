@@ -380,9 +380,9 @@ public class CategoriaRestController {
             summary = "Categorías con cantidad de productos",
             description = "Lista todas las categorías con la cantidad de productos activos en cada una"
     )
-    public ResponseEntity<List<CategoriaDTO>> listarConCantidad() {
+    public ResponseEntity<Page<CategoriaDTO>> listarConCantidad(Pageable pageable) {
         log.info("GET /api/categorias/con-cantidad");
-        List<CategoriaDTO> categorias = categoriaService.listarTodasConCantidad(); // Método en el service
+        Page<CategoriaDTO> categorias = categoriaService.listarTodasConCantidad(pageable); // Método en el service
         return ResponseEntity.ok(categorias);
     }
 

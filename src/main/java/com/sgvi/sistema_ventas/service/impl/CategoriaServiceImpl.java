@@ -130,8 +130,8 @@ public class CategoriaServiceImpl implements ICategoriaService {
     }
 
     @Override
-    public List<CategoriaDTO> listarTodasConCantidad() {
-        return categoriaRepository.findAllWithProductCount();
+    public Page<CategoriaDTO> listarTodasConCantidad(Pageable pageable) {
+        return categoriaRepository.findAllWithProductCount(pageable);
     }
 
     @Override

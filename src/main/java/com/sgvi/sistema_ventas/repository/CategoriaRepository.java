@@ -2,6 +2,8 @@ package com.sgvi.sistema_ventas.repository;
 
 import com.sgvi.sistema_ventas.model.dto.producto.CategoriaDTO;
 import com.sgvi.sistema_ventas.model.entity.Categoria;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -59,7 +61,7 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     @Query("SELECT COUNT(p) FROM Producto p WHERE p.idCategoria = :idCategoria AND p.estado = true")
     Long countProductosActivosByCategoria(@Param("idCategoria") Long idCategoria);
 
-    @Query("""
+    @Query(value = """
            SELECT new com.sgvi.sistema_ventas.model.dto.producto.CategoriaDTO(
                c.idCategoria,
                c.nombre,
@@ -71,8 +73,9 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
            FROM Categoria c
            LEFT JOIN Producto p ON p.idCategoria = c.idCategoria AND p.estado = true
            GROUP BY c.idCategoria, c.nombre, c.descripcion, c.estado, c.fechaCreacion
-           """)
-    List<CategoriaDTO> findAllWithProductCount();
+           """,
+           countQuery = "SELECT COUNT(c) FROM Categoria c")
+    Page<CategoriaDTO> findAllWithProductCount(Pageable pageable);
 
     // Busqueda con filtro por nombre opcional (ignore case)
     @Query("""
