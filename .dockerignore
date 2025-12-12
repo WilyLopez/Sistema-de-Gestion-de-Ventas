@@ -1,0 +1,44 @@
+# Archivos de Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# IDE
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+*.swp
+*.swo
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs y temporales
+*.log
+*.tmp
+*.temp
+
+# Configuraciones locales
+*.properties
+*.yml
+*.yaml
+!src/main/resources/application*.yml
+!src/main/resources/application*.properties
+
+# Directorios de pruebas
+src/test/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
