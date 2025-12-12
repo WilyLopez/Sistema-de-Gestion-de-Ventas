@@ -17,9 +17,6 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class ConsultaExternaRestController {
 
-    @Value("${peru.api.url:https://apiperu.dev/api}")
-    private String peruApiUrl;
-
     @Value("${peru.api.token}")
     private String peruApiToken;
 
@@ -32,60 +29,49 @@ public class ConsultaExternaRestController {
     @GetMapping("/dni/{numero}")
     public ResponseEntity<?> consultarDNI(@PathVariable String numero) {
         try {
-            log.info("Consultando DNI: {}", numero);
+            log.info("Consultando DNI con peruapi.com (nuevo método): {}", numero);
 
-            // Validar formato DNI (8 dígitos)
             if (!numero.matches("\\d{8}")) {
-                return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("error", "DNI debe tener 8 dígitos"));
+                return ResponseEntity.badRequest().body(Map.of("error", "DNI debe tener 8 dígitos"));
             }
 
-            // Configurar headers con el token
             HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + peruApiToken);
+            // Usando el encabezado y token correctos según el ejemplo
+            headers.set("X-API-KEY", peruApiToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            // Hacer la petición a la API externa
-            String url = peruApiUrl + "/dni/" + numero;
-            
+            // URL y método correctos según el ejemplo
+            String url = "https://peruapi.com/api/dni/" + numero;
+
             ResponseEntity<Map> response = restTemplate.exchange(
                 url,
-                HttpMethod.GET,
+                HttpMethod.GET, // El método es GET
                 entity,
                 Map.class
             );
 
-            if (response.getStatusCode() == HttpStatus.OK) {
-                Map<String, Object> data = response.getBody();
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
                 
-                // Transformar respuesta a formato consistente
+                // Adaptar a la estructura de respuesta de peruapi.com
                 Map<String, Object> resultado = new HashMap<>();
                 resultado.put("tipoDocumento", "DNI");
-                resultado.put("numeroDocumento", numero);
-                resultado.put("nombres", data.get("nombres"));
-                resultado.put("apellidoPaterno", data.get("apellido_paterno"));
-                resultado.put("apellidoMaterno", data.get("apellido_materno"));
-                resultado.put("nombreCompleto", 
-                    data.get("nombres") + " " + 
-                    data.get("apellido_paterno") + " " + 
-                    data.get("apellido_materno")
-                );
+                resultado.put("numeroDocumento", responseBody.get("dni"));
+                resultado.put("nombres", responseBody.get("nombres"));
+                resultado.put("apellidoPaterno", responseBody.get("apellido_paterno"));
+                resultado.put("apellidoMaterno", responseBody.get("apellido_materno"));
+                resultado.put("nombreCompleto", responseBody.get("nombre_completo"));
 
                 return ResponseEntity.ok(resultado);
             }
 
-            return ResponseEntity
-                .status(response.getStatusCode())
-                .body(Map.of("error", "Error al consultar DNI"));
+            return ResponseEntity.status(response.getStatusCode()).body(Map.of("error", "Error al consultar DNI en peruapi.com."));
 
         } catch (Exception e) {
-            log.error("Error consultando DNI: {}", e.getMessage());
-            return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "DNI no encontrado o servicio no disponible"));
+            log.error("Error consultando DNI con peruapi.com: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "DNI no encontrado o servicio no disponible en peruapi.com."));
         }
     }
 
@@ -96,25 +82,20 @@ public class ConsultaExternaRestController {
     @GetMapping("/ruc/{numero}")
     public ResponseEntity<?> consultarRUC(@PathVariable String numero) {
         try {
-            log.info("Consultando RUC: {}", numero);
+            log.info("Consultando RUC con peruapi.com (nuevo método): {}", numero);
 
-            // Validar formato RUC (11 dígitos)
             if (!numero.matches("\\d{11}")) {
-                return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("error", "RUC debe tener 11 dígitos"));
+                return ResponseEntity.badRequest().body(Map.of("error", "RUC debe tener 11 dígitos"));
             }
 
-            // Configurar headers
             HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + peruApiToken);
+            headers.set("X-API-KEY", peruApiToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            // Hacer la petición
-            String url = peruApiUrl + "/ruc/" + numero;
-            
+            String url = "https://peruapi.com/api/ruc/" + numero;
+
             ResponseEntity<Map> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
@@ -122,31 +103,26 @@ public class ConsultaExternaRestController {
                 Map.class
             );
 
-            if (response.getStatusCode() == HttpStatus.OK) {
-                Map<String, Object> data = response.getBody();
-                
-                // Transformar respuesta
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+
                 Map<String, Object> resultado = new HashMap<>();
                 resultado.put("tipoDocumento", "RUC");
-                resultado.put("numeroDocumento", numero);
-                resultado.put("razonSocial", data.get("razon_social"));
-                resultado.put("nombreComercial", data.get("nombre_comercial"));
-                resultado.put("direccion", data.get("direccion"));
-                resultado.put("estado", data.get("estado"));
-                resultado.put("condicion", data.get("condicion"));
+                resultado.put("numeroDocumento", responseBody.get("ruc"));
+                resultado.put("razonSocial", responseBody.get("razon_social"));
+                resultado.put("nombreComercial", responseBody.get("nombre_comercial"));
+                resultado.put("direccion", responseBody.get("direccion"));
+                resultado.put("estado", responseBody.get("estado"));
+                resultado.put("condicion", responseBody.get("condicion"));
 
                 return ResponseEntity.ok(resultado);
             }
 
-            return ResponseEntity
-                .status(response.getStatusCode())
-                .body(Map.of("error", "Error al consultar RUC"));
+            return ResponseEntity.status(response.getStatusCode()).body(Map.of("error", "Error al consultar RUC en peruapi.com."));
 
         } catch (Exception e) {
-            log.error("Error consultando RUC: {}", e.getMessage());
-            return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "RUC no encontrado o servicio no disponible"));
+            log.error("Error consultando RUC con peruapi.com: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "RUC no encontrado o servicio no disponible en peruapi.com."));
         }
     }
 }
