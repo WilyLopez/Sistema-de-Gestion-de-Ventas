@@ -86,7 +86,8 @@ public class SecurityConfig {
             "http://localhost:4200",
             "http://127.0.0.1:3000",
             "http://192.168.0.100:3000",
-            "https://gestion-de-ventas.onrender.com"
+            "https://gestion-ventas.vercel.app"
+
         ));
         
         configuration.setAllowedMethods(Arrays.asList(
